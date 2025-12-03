@@ -1,37 +1,14 @@
 use std::collections::HashMap;
 
-use pyo3::{
-    exceptions::PyKeyError,
-    prelude::*,
-    types::{PyDict, PyList},
-};
-
-pub type VecArcs = Vec<Vec<Arcs>>;
-
-#[derive(Debug)]
-pub struct Arcs(Option<Vec<i32>>);
-
-impl<'a, 'py> FromPyObject<'a, 'py> for Arcs {
-    type Error = PyErr;
-
-    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        if obj.is_instance_of::<PyList>() {
-            let list: Borrowed<'a, 'py, PyList> = obj.cast()?;
-            let arcs = list.extract()?;
-            Ok(Self(Some(arcs)))
-        } else {
-            Ok(Self(None))
-        }
-    }
-}
+use pyo3::{exceptions::PyKeyError, prelude::*, types::PyDict};
 
 #[derive(Debug)]
 pub struct TopoJSON {
     pub r#type: String,
     pub bbox: Vec<f32>,
     pub transform: Option<Transform>,
-    pub objects: HashMap<String, GeometryCollection>,
-    pub arcs: VecArcs,
+    pub objects: HashMap<String, Geometry>,
+    pub arcs: Vec<Vec<Vec<i32>>>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
@@ -93,35 +70,23 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
 }
 
 #[derive(Debug)]
-pub struct GeometryCollection {
-    pub r#type: String,
-    pub geometries: Vec<Geometry>,
-}
-
-impl<'a, 'py> FromPyObject<'a, 'py> for GeometryCollection {
-    type Error = PyErr;
-
-    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let dict: Borrowed<'a, 'py, PyDict> = obj.cast()?;
-        let r#type = dict
-            .get_item("type")?
-            .ok_or_else(|| PyKeyError::new_err("\"type\" not found in one object"))?
-            .extract()?;
-        let geometries = dict
-            .get_item("geometries")?
-            .ok_or_else(|| PyKeyError::new_err("\"geometries\" not found in one object"))?
-            .extract()?;
-        Ok(Self { r#type, geometries })
-    }
+pub enum GeometryType {
+    GeometryCollection { geometries: Vec<Geometry> },
+    Point { coordinates: Vec<f32> },
+    MultiPoint { coordinates: Vec<Vec<f32>> },
+    LineString { arcs: Vec<i32> },
+    MultiLineString { arcs: Vec<Vec<i32>> },
+    Polygon { arcs: Vec<Vec<i32>> },
+    MultiPolygon { arcs: Vec<Vec<Vec<i32>>> },
 }
 
 #[derive(Debug)]
 pub struct Geometry {
     pub r#type: String,
-    pub bbox: Option<Vec<f32>>,
-    pub arcs: VecArcs,
+    pub geometry: GeometryType,
     pub id: Option<String>,
     pub properties: Option<Properties>,
+    pub bbox: Option<Vec<f32>>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
@@ -129,13 +94,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
 
     fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let dict: Borrowed<'a, 'py, PyDict> = obj.cast()?;
-        let r#type = dict
+        let r#type: String = dict
             .get_item("type")?
             .ok_or_else(|| PyKeyError::new_err("\"type\" not found in \"geometry\""))?
-            .extract()?;
-        let arcs = dict
-            .get_item("arcs")?
-            .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
             .extract()?;
         let bbox = dict.get_item("bbox")?.map(|v| v.extract()).transpose()?;
         let id = dict.get_item("id")?.map(|v| v.extract()).transpose()?;
@@ -144,10 +105,65 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
             .map(|v| v.extract())
             .transpose()?;
 
+        let geometry = match r#type.as_str() {
+            "GeometryCollection" => GeometryType::GeometryCollection {
+                geometries: dict
+                    .get_item("geometries")?
+                    .ok_or_else(|| PyKeyError::new_err("\"geometries\" not found in \"geometry\""))?
+                    .extract()?,
+            },
+            "Point" => GeometryType::Point {
+                coordinates: dict
+                    .get_item("coordinates")?
+                    .ok_or_else(|| {
+                        PyKeyError::new_err("\"coordinates\" not found in \"geometry\"")
+                    })?
+                    .extract()?,
+            },
+            "MultiPoint" => GeometryType::MultiPoint {
+                coordinates: dict
+                    .get_item("coordinates")?
+                    .ok_or_else(|| {
+                        PyKeyError::new_err("\"coordinates\" not found in \"geometry\"")
+                    })?
+                    .extract()?,
+            },
+            "LineString" => GeometryType::LineString {
+                arcs: dict
+                    .get_item("arcs")?
+                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
+                    .extract()?,
+            },
+            "MultiLineString" => GeometryType::MultiLineString {
+                arcs: dict
+                    .get_item("arcs")?
+                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
+                    .extract()?,
+            },
+            "Polygon" => GeometryType::Polygon {
+                arcs: dict
+                    .get_item("arcs")?
+                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
+                    .extract()?,
+            },
+            "MultiPolygon" => GeometryType::MultiPolygon {
+                arcs: dict
+                    .get_item("arcs")?
+                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
+                    .extract()?,
+            },
+            unknown_type => {
+                return Err(PyKeyError::new_err(format!(
+                    "Unknown type: {}",
+                    unknown_type
+                )));
+            }
+        };
+
         Ok(Self {
             r#type,
             bbox,
-            arcs,
+            geometry,
             id,
             properties,
         })
