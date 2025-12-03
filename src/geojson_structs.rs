@@ -1,4 +1,5 @@
 use crate::topojson_structs::Properties;
+use pyo3::{prelude::*, types::PyDict};
 
 #[derive(Debug)]
 pub enum Feature {
@@ -6,10 +7,35 @@ pub enum Feature {
     Item(FeatureItem),
 }
 
+impl<'py> IntoPyObject<'py> for Feature {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            Feature::Item(feature) => Ok(feature.into_pyobject(py)?),
+            Feature::Collection(feature) => Ok(feature.into_pyobject(py)?),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct FeatureCollection {
     pub r#type: String,
-    pub features: Vec<Feature>,
+    pub features: Vec<FeatureItem>,
+}
+
+impl<'py> IntoPyObject<'py> for FeatureCollection {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = PyDict::new(py);
+        dict.set_item("features", self.features)?;
+        Ok(dict)
+    }
 }
 
 #[derive(Debug)]
@@ -19,6 +45,29 @@ pub struct FeatureItem {
     pub geometry: FeatureGeometry,
     pub id: Option<String>,
     pub bbox: Option<Vec<f32>>,
+}
+
+impl<'py> IntoPyObject<'py> for FeatureItem {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = PyDict::new(py);
+        dict.set_item("type", "Feature")?;
+        match self.properties {
+            Some(properties) => dict.set_item("properties", properties)?,
+            None => dict.set_item("properties", PyDict::new(py))?,
+        };
+        dict.set_item("geometry", self.geometry)?;
+        if let Some(id) = self.id {
+            dict.set_item("id", id)?;
+        }
+        if let Some(bbox) = self.bbox {
+            dict.set_item("bbox", bbox)?;
+        };
+        Ok(dict)
+    }
 }
 
 #[derive(Debug)]
@@ -32,7 +81,7 @@ pub enum FeatureGeometryType {
     MultiPoint {
         coordinates: Vec<Vec<f32>>,
     },
-    Line {
+    LineString {
         coordinates: Vec<Vec<f32>>,
     },
     MultiLineString {
@@ -50,4 +99,57 @@ pub enum FeatureGeometryType {
 pub struct FeatureGeometry {
     pub r#type: String,
     pub geometry: FeatureGeometryType,
+}
+
+impl<'py> IntoPyObject<'py> for FeatureGeometry {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self.geometry {
+            FeatureGeometryType::GeometryCollection { geometries } => {
+                let dict = PyDict::new(py);
+                dict.set_item("type", self.r#type)?;
+                dict.set_item("geometries", geometries)?;
+                Ok(dict)
+            }
+            FeatureGeometryType::Point { coordinates } => {
+                let dict = PyDict::new(py);
+                dict.set_item("type", self.r#type)?;
+                dict.set_item("coordinates", coordinates)?;
+                Ok(dict)
+            }
+            FeatureGeometryType::MultiPoint { coordinates } => {
+                let dict = PyDict::new(py);
+                dict.set_item("type", self.r#type)?;
+                dict.set_item("coordinates", coordinates)?;
+                Ok(dict)
+            }
+            FeatureGeometryType::LineString { coordinates } => {
+                let dict = PyDict::new(py);
+                dict.set_item("type", self.r#type)?;
+                dict.set_item("coordinates", coordinates)?;
+                Ok(dict)
+            }
+            FeatureGeometryType::MultiLineString { coordinates } => {
+                let dict = PyDict::new(py);
+                dict.set_item("type", self.r#type)?;
+                dict.set_item("coordinates", coordinates)?;
+                Ok(dict)
+            }
+            FeatureGeometryType::Polygon { coordinates } => {
+                let dict = PyDict::new(py);
+                dict.set_item("type", self.r#type)?;
+                dict.set_item("coordinates", coordinates)?;
+                Ok(dict)
+            }
+            FeatureGeometryType::MultiPolygon { coordinates } => {
+                let dict = PyDict::new(py);
+                dict.set_item("type", self.r#type)?;
+                dict.set_item("coordinates", coordinates)?;
+                Ok(dict)
+            }
+        }
+    }
 }

@@ -170,7 +170,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Properties {
     pub name: String,
 }
@@ -185,5 +185,17 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Properties {
             .ok_or_else(|| PyKeyError::new_err("\"name\" not found in \"properties\""))?
             .extract()?;
         Ok(Self { name })
+    }
+}
+
+impl<'py> IntoPyObject<'py> for Properties {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = PyDict::new(py);
+        dict.set_item("name", self.name)?;
+        Ok(dict)
     }
 }

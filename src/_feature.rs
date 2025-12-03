@@ -5,34 +5,34 @@ use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 use crate::transform::transform;
 use pyo3::prelude::PyResult;
 
-fn wrap_feature(topology: TopoJSON, o: Geometry) -> PyResult<Feature> {
-    match o.geometry {
+pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
+    match &o.geometry {
         GeometryType::GeometryCollection { geometries } => {
-            let features: Vec<Feature> = geometries
+            let features: Vec<FeatureItem> = geometries
                 .into_iter()
-                .map(|o| feature_item(&topology, o))
-                .collect::<PyResult<Vec<Feature>>>()?;
+                .map(|o| feature_item(&topology, &o))
+                .collect::<PyResult<Vec<FeatureItem>>>()?;
             Ok(Feature::Collection(FeatureCollection {
                 r#type: "FeatureCollection".to_string(),
                 features,
             }))
         }
-        _ => feature_item(&topology, o),
+        _ => Ok(Feature::Item(feature_item(&topology, o)?)),
     }
 }
 
-fn feature_item(topology: &TopoJSON, o: Geometry) -> PyResult<Feature> {
+fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
     let geometry = Object::call(topology, &o)?;
-    let id = o.id;
-    let bbox = o.bbox;
-    let properties = o.properties;
-    Ok(Feature::Item(FeatureItem {
+    let id = o.id.clone();
+    let bbox = o.bbox.clone();
+    let properties = o.properties.clone();
+    Ok(FeatureItem {
         id,
         bbox,
         properties,
         geometry,
         r#type: String::from("Feature"),
-    }))
+    })
 }
 
 struct Object<'a> {
@@ -123,7 +123,7 @@ impl<'a> Object<'a> {
             },
             GeometryType::LineString { arcs } => FeatureGeometry {
                 r#type,
-                geometry: FeatureGeometryType::Line {
+                geometry: FeatureGeometryType::LineString {
                     coordinates: self.line(&arcs),
                 },
             },
