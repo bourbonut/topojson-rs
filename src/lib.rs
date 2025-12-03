@@ -43,13 +43,14 @@
 // }
 
 mod feature;
-mod parse_definitions;
-// mod transform;
+mod feature_structs;
+mod topojson_structs;
+mod transform;
 use pyo3::{prelude::*, types::PyDict};
 
 #[pyfunction]
 fn dict_to_rust(py_dict: &Bound<'_, PyDict>) -> PyResult<()> {
-    let geometry: parse_definitions::TopoJSON = py_dict.extract()?;
+    let geometry: topojson_structs::TopoJSON = py_dict.extract()?;
     println!("{:?}", geometry);
     Ok(())
 }
