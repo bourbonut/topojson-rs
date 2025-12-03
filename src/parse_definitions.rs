@@ -6,10 +6,10 @@ use pyo3::{
     types::{PyDict, PyList},
 };
 
-type VecArcs = Vec<Vec<Arcs>>;
+pub type VecArcs = Vec<Vec<Arcs>>;
 
 #[derive(Debug)]
-struct Arcs(Option<Vec<i32>>);
+pub struct Arcs(Option<Vec<i32>>);
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Arcs {
     type Error = PyErr;
@@ -27,11 +27,11 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Arcs {
 
 #[derive(Debug)]
 pub struct TopoJSON {
-    r#type: String,
-    bbox: Vec<f32>,
-    transform: Transform,
-    objects: HashMap<String, Geometries>,
-    arcs: VecArcs,
+    pub r#type: String,
+    pub bbox: Vec<f32>,
+    pub transform: Option<Transform>,
+    pub objects: HashMap<String, GeometryCollection>,
+    pub arcs: VecArcs,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
@@ -49,8 +49,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
             .extract()?;
         let transform = dict
             .get_item("transform")?
-            .ok_or_else(|| PyKeyError::new_err("\"transform\" not found in the topojson"))?
-            .extract()?;
+            .map(|v| v.extract())
+            .transpose()?;
         let objects = dict
             .get_item("objects")?
             .ok_or_else(|| PyKeyError::new_err("\"objects\" not found in the topojson"))?
@@ -70,9 +70,9 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
 }
 
 #[derive(Debug)]
-struct Transform {
-    scale: Vec<f32>,
-    translate: Vec<f32>,
+pub struct Transform {
+    pub scale: Vec<f32>,
+    pub translate: Vec<f32>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
@@ -93,12 +93,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
 }
 
 #[derive(Debug)]
-struct Geometries {
-    r#type: String,
-    geometries: Vec<Geometry>,
+pub struct GeometryCollection {
+    pub r#type: String,
+    pub geometries: Vec<Geometry>,
 }
 
-impl<'a, 'py> FromPyObject<'a, 'py> for Geometries {
+impl<'a, 'py> FromPyObject<'a, 'py> for GeometryCollection {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
@@ -116,11 +116,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometries {
 }
 
 #[derive(Debug)]
-struct Geometry {
-    r#type: String,
-    arcs: VecArcs,
-    id: Option<String>,
-    properties: Option<Properties>,
+pub struct Geometry {
+    pub r#type: String,
+    pub bbox: Option<Vec<f32>>,
+    pub arcs: VecArcs,
+    pub id: Option<String>,
+    pub properties: Option<Properties>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
@@ -136,6 +137,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
             .get_item("arcs")?
             .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
             .extract()?;
+        let bbox = dict.get_item("bbox")?.map(|v| v.extract()).transpose()?;
         let id = dict.get_item("id")?.map(|v| v.extract()).transpose()?;
         let properties = dict
             .get_item("properties")?
@@ -144,6 +146,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
 
         Ok(Self {
             r#type,
+            bbox,
             arcs,
             id,
             properties,
@@ -152,8 +155,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
 }
 
 #[derive(Debug)]
-struct Properties {
-    name: String,
+pub struct Properties {
+    pub name: String,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Properties {
