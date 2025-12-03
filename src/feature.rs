@@ -1,4 +1,4 @@
-use crate::feature_structs::{
+use crate::geojson_structs::{
     Feature, FeatureCollection, FeatureGeometry, FeatureGeometryType, FeatureItem,
 };
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};

@@ -43,7 +43,7 @@
 // }
 
 mod feature;
-mod feature_structs;
+mod geojson_structs;
 mod topojson_structs;
 mod transform;
 use pyo3::{prelude::*, types::PyDict};
