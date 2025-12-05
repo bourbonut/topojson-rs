@@ -5,7 +5,7 @@ use pyo3::{exceptions::PyKeyError, prelude::*, types::PyDict};
 #[derive(Debug)]
 pub struct TopoJSON {
     pub r#type: String,
-    pub bbox: Vec<f32>,
+    pub bbox: Vec<f64>,
     pub transform: Option<Transform>,
     pub objects: HashMap<String, Geometry>,
     pub arcs: Vec<Vec<Vec<i32>>>,
@@ -48,8 +48,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
 
 #[derive(Debug)]
 pub struct Transform {
-    pub scale: Vec<f32>,
-    pub translate: Vec<f32>,
+    pub scale: Vec<f64>,
+    pub translate: Vec<f64>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
@@ -72,8 +72,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
 #[derive(Debug)]
 pub enum GeometryType {
     GeometryCollection { geometries: Vec<Geometry> },
-    Point { coordinates: Vec<f32> },
-    MultiPoint { coordinates: Vec<Vec<f32>> },
+    Point { coordinates: Vec<f64> },
+    MultiPoint { coordinates: Vec<Vec<f64>> },
     LineString { arcs: Vec<i32> },
     MultiLineString { arcs: Vec<Vec<i32>> },
     Polygon { arcs: Vec<Vec<i32>> },
@@ -86,7 +86,7 @@ pub struct Geometry {
     pub geometry: GeometryType,
     pub id: Option<String>,
     pub properties: Option<Properties>,
-    pub bbox: Option<Vec<f32>>,
+    pub bbox: Option<Vec<f64>>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {

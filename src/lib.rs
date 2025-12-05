@@ -44,6 +44,7 @@
 
 mod _feature;
 mod geojson_structs;
+mod reverse;
 mod topojson_structs;
 mod transform;
 

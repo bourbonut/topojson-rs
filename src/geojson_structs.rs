@@ -33,6 +33,7 @@ impl<'py> IntoPyObject<'py> for FeatureCollection {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let dict = PyDict::new(py);
+        dict.set_item("type", self.r#type)?;
         dict.set_item("features", self.features)?;
         Ok(dict)
     }
@@ -44,7 +45,7 @@ pub struct FeatureItem {
     pub properties: Option<Properties>,
     pub geometry: FeatureGeometry,
     pub id: Option<String>,
-    pub bbox: Option<Vec<f32>>,
+    pub bbox: Option<Vec<f64>>,
 }
 
 impl<'py> IntoPyObject<'py> for FeatureItem {
@@ -76,22 +77,22 @@ pub enum FeatureGeometryType {
         geometries: Vec<FeatureGeometry>,
     },
     Point {
-        coordinates: Vec<f32>,
+        coordinates: Vec<f64>,
     },
     MultiPoint {
-        coordinates: Vec<Vec<f32>>,
+        coordinates: Vec<Vec<f64>>,
     },
     LineString {
-        coordinates: Vec<Vec<f32>>,
+        coordinates: Vec<Vec<f64>>,
     },
     MultiLineString {
-        coordinates: Vec<Vec<Vec<f32>>>,
+        coordinates: Vec<Vec<Vec<f64>>>,
     },
     Polygon {
-        coordinates: Vec<Vec<Vec<f32>>>,
+        coordinates: Vec<Vec<Vec<f64>>>,
     },
     MultiPolygon {
-        coordinates: Vec<Vec<Vec<Vec<f32>>>>,
+        coordinates: Vec<Vec<Vec<Vec<f64>>>>,
     },
 }
 
