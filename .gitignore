@@ -1,3 +1,6 @@
 Cargo.lock
 target/
 .venv/
+*.json
+main.py
+test.py
