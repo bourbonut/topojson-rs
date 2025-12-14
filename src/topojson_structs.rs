@@ -1,6 +1,17 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, usize};
 
-use pyo3::{exceptions::PyKeyError, prelude::*, types::PyDict};
+use pyo3::{
+    PyErr,
+    exceptions::PyKeyError,
+    prelude::*,
+    types::{PyDict, PyList},
+};
+
+#[derive(Debug)]
+pub struct Compact<T, const N: usize> {
+    value: T,
+    indices: [usize; N],
+}
 
 #[derive(Debug)]
 pub struct TopoJSON {
@@ -8,7 +19,7 @@ pub struct TopoJSON {
     pub bbox: Vec<f64>,
     pub transform: Option<Transform>,
     pub objects: HashMap<String, Geometry>,
-    pub arcs: Vec<Vec<Vec<i32>>>,
+    pub arcs: Vec<Compact<i32, 2>>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
@@ -32,10 +43,28 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
             .get_item("objects")?
             .ok_or_else(|| PyKeyError::new_err("\"objects\" not found in the topojson"))?
             .extract()?;
-        let arcs = dict
+        // let arcs = dict
+        //     .get_item("arcs")?
+        //     .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in the topojson"))?
+        //     .extract()?;
+        let any = dict
             .get_item("arcs")?
-            .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in the topojson"))?
-            .extract()?;
+            .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in the topojson"))?;
+        let pyarcs: &Bound<'_, PyList> = any.cast()?;
+        let mut arcs = Vec::new();
+        for pylevel2 in pyarcs.iter() {
+            let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+            for (i, pylevel3) in level2.iter().enumerate() {
+                let level3: &Bound<'_, PyList> = pylevel3.cast()?;
+                for (k, pylevel4) in level3.iter().enumerate() {
+                    let value = pylevel4.extract()?;
+                    arcs.push(Compact {
+                        value,
+                        indices: [i, k],
+                    });
+                }
+            }
+        }
         Ok(Self {
             r#type,
             bbox,
@@ -73,11 +102,11 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
 pub enum GeometryType {
     GeometryCollection { geometries: Vec<Geometry> },
     Point { coordinates: Vec<f64> },
-    MultiPoint { coordinates: Vec<Vec<f64>> },
+    MultiPoint { coordinates: Vec<Compact<f64, 1>> },
     LineString { arcs: Vec<i32> },
-    MultiLineString { arcs: Vec<Vec<i32>> },
-    Polygon { arcs: Vec<Vec<i32>> },
-    MultiPolygon { arcs: Vec<Vec<Vec<i32>>> },
+    MultiLineString { arcs: Vec<Compact<i32, 1>> },
+    Polygon { arcs: Vec<Compact<i32, 1>> },
+    MultiPolygon { arcs: Vec<Compact<i32, 2>> },
 }
 
 #[derive(Debug)]
@@ -88,6 +117,52 @@ pub struct Geometry {
     pub properties: Option<Properties>,
     pub bbox: Option<Vec<f64>>,
 }
+
+// fn extract1<'a, T: FromPyObject<'a, 'a>>(dict: &Bound<'a, PyDict>) -> PyResult<Vec<Compact<T, 1>>>
+// where
+//     PyErr: From<<T as FromPyObject<'a, 'a>>::Error>,
+// {
+//     let any = dict
+//         .get_item("coordinates")?
+//         .ok_or_else(|| PyKeyError::new_err("\"coordinates\" not found in \"geometry\""))?;
+//     let list: &Bound<'_, PyList> = any.cast()?;
+//     let mut compacts = Vec::new();
+//     for pylevel2 in list {
+//         let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+//         for (i, pylevel3) in level2.iter().enumerate() {
+//             compacts.push(Compact {
+//                 value: pylevel3.extract()?,
+//                 indices: [i],
+//             });
+//         }
+//     }
+//     Ok(compacts)
+// }
+//
+// fn extract2<'a, T: FromPyObject<'a, 'a>>(dict: &Bound<'a, PyDict>) -> PyResult<Vec<Compact<T, 2>>>
+// where
+//     pyo3::PyErr: From<<T as pyo3::FromPyObject<'a, 'a>>::Error>,
+// {
+//     let any = dict
+//         .get_item("coordinates")?
+//         .ok_or_else(|| PyKeyError::new_err("\"coordinates\" not found in \"geometry\""))?;
+//
+//     let list: &Bound<'a, PyList> = any.cast()?;
+//     let mut compacts = Vec::new();
+//     for pylevel2 in list {
+//         let level2: &Bound<'a, PyList> = pylevel2.cast()?;
+//         for (i, pylevel3) in level2.iter().enumerate() {
+//             let level3: &Bound<'a, PyList> = pylevel3.cast()?;
+//             for (j, pylevel4) in level3.iter().enumerate() {
+//                 compacts.push(Compact {
+//                     value: pylevel4.extract()?,
+//                     indices: [i, j],
+//                 });
+//             }
+//         }
+//     }
+//     Ok(compacts)
+// }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
     type Error = PyErr;
@@ -121,12 +196,23 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
                     .extract()?,
             },
             "MultiPoint" => GeometryType::MultiPoint {
-                coordinates: dict
-                    .get_item("coordinates")?
-                    .ok_or_else(|| {
+                coordinates: {
+                    let any = dict.get_item("coordinates")?.ok_or_else(|| {
                         PyKeyError::new_err("\"coordinates\" not found in \"geometry\"")
-                    })?
-                    .extract()?,
+                    })?;
+                    let list: &Bound<'_, PyList> = any.cast()?;
+                    let mut compacts = Vec::new();
+                    for pylevel2 in list {
+                        let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+                        for (i, pylevel3) in level2.iter().enumerate() {
+                            compacts.push(Compact {
+                                value: pylevel3.extract()?,
+                                indices: [i],
+                            });
+                        }
+                    }
+                    compacts
+                },
             },
             "LineString" => GeometryType::LineString {
                 arcs: dict
@@ -135,22 +221,65 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
                     .extract()?,
             },
             "MultiLineString" => GeometryType::MultiLineString {
-                arcs: dict
-                    .get_item("arcs")?
-                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
-                    .extract()?,
+                arcs: {
+                    let any = dict.get_item("arcs")?.ok_or_else(|| {
+                        PyKeyError::new_err("\"coordinates\" not found in \"geometry\"")
+                    })?;
+                    let list: &Bound<'_, PyList> = any.cast()?;
+                    let mut compacts = Vec::new();
+                    for pylevel2 in list {
+                        let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+                        for (i, pylevel3) in level2.iter().enumerate() {
+                            compacts.push(Compact {
+                                value: pylevel3.extract()?,
+                                indices: [i],
+                            });
+                        }
+                    }
+                    compacts
+                },
             },
             "Polygon" => GeometryType::Polygon {
-                arcs: dict
-                    .get_item("arcs")?
-                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
-                    .extract()?,
+                arcs: {
+                    let any = dict.get_item("arcs")?.ok_or_else(|| {
+                        PyKeyError::new_err("\"coordinates\" not found in \"geometry\"")
+                    })?;
+                    let list: &Bound<'_, PyList> = any.cast()?;
+                    let mut compacts = Vec::new();
+                    for pylevel2 in list {
+                        let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+                        for (i, pylevel3) in level2.iter().enumerate() {
+                            compacts.push(Compact {
+                                value: pylevel3.extract()?,
+                                indices: [i],
+                            });
+                        }
+                    }
+                    compacts
+                },
             },
             "MultiPolygon" => GeometryType::MultiPolygon {
-                arcs: dict
-                    .get_item("arcs")?
-                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
-                    .extract()?,
+                arcs: {
+                    let any = dict.get_item("arcs")?.ok_or_else(|| {
+                        PyKeyError::new_err("\"coordinates\" not found in \"geometry\"")
+                    })?;
+
+                    let list: &Bound<'_, PyList> = any.cast()?;
+                    let mut compacts = Vec::new();
+                    for pylevel2 in list {
+                        let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+                        for (i, pylevel3) in level2.iter().enumerate() {
+                            let level3: &Bound<'_, PyList> = pylevel3.cast()?;
+                            for (j, pylevel4) in level3.iter().enumerate() {
+                                compacts.push(Compact {
+                                    value: pylevel4.extract()?,
+                                    indices: [i, j],
+                                });
+                            }
+                        }
+                    }
+                    compacts
+                },
             },
             unknown_type => {
                 return Err(PyKeyError::new_err(format!(

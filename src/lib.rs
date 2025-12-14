@@ -42,32 +42,46 @@
 //     Ok(())
 // }
 
-mod _feature;
-mod geojson_structs;
-mod reverse;
+// mod _feature;
+// mod geojson_structs;
+// mod reverse;
 mod topojson_structs;
-mod transform;
+// mod transform;
 
-use _feature::wrap_feature;
-use geojson_structs::Feature;
+// use _feature::wrap_feature;
+// use geojson_structs::Feature;
 use pyo3::{
     prelude::*,
-    types::{PyAny, PyDict, PyString},
+    types::{PyAny, PyDict}, // PyString
 };
-use topojson_structs::{Geometry, TopoJSON};
+use std::time::Instant;
+use topojson_structs::TopoJSON; // Geometry
 
 #[pyfunction]
-fn feature(topology: &Bound<'_, PyDict>, o: &Bound<'_, PyAny>) -> PyResult<Feature> {
-    let topology: TopoJSON = topology.extract()?;
-    let feature = if o.is_instance_of::<PyString>() {
-        let key: String = o.extract::<String>()?;
-        let o = &topology.objects[&key];
-        wrap_feature(&topology, o)?
-    } else {
-        let o: Geometry = o.extract()?;
-        wrap_feature(&topology, &o)?
-    };
-    Ok(feature)
+fn feature(topology: &Bound<'_, PyDict>, o: &Bound<'_, PyAny>) -> PyResult<i32> {
+    let start = Instant::now();
+    let _topology: TopoJSON = topology.extract()?;
+    let end = Instant::now();
+    let duration1 = (end - start).as_secs_f64();
+    println!("parsing gain: {:?} s", 0.00372303 / duration1);
+    // let start = Instant::now();
+    // let feature = if o.is_instance_of::<PyString>() {
+    //     let key: String = o.extract::<String>()?;
+    //     let o = &topology.objects[&key];
+    //     wrap_feature(&topology, o)?
+    // } else {
+    //     let o: Geometry = o.extract()?;
+    //     wrap_feature(&topology, &o)?
+    // };
+    // let end = Instant::now();
+    // let duration2 = (end - start).as_secs_f64();
+    // println!("feature duration: {:?} s", duration2);
+    // println!(
+    //     "parsing percentage: {:.0}%",
+    //     duration1 / (duration1 + duration2) * 100.0
+    // );
+    // Ok(feature)
+    Ok(12)
 }
 
 #[pymodule]
