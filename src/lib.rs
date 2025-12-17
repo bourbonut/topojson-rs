@@ -42,36 +42,17 @@
 //     Ok(())
 // }
 
-mod _feature;
+mod api;
+mod feature;
 mod geojson_structs;
 mod reverse;
 mod topojson_structs;
 mod transform;
 
-use _feature::wrap_feature;
-use geojson_structs::Feature;
-use pyo3::{
-    prelude::*,
-    types::{PyAny, PyDict, PyString},
-};
-use topojson_structs::{Geometry, TopoJSON};
-
-#[pyfunction]
-fn feature(topology: &Bound<'_, PyDict>, o: &Bound<'_, PyAny>) -> PyResult<Feature> {
-    let topology: TopoJSON = topology.extract()?;
-    let feature = if o.is_instance_of::<PyString>() {
-        let key: String = o.extract::<String>()?;
-        let o = &topology.objects[&key];
-        wrap_feature(&topology, o)?
-    } else {
-        let o: Geometry = o.extract()?;
-        wrap_feature(&topology, &o)?
-    };
-    Ok(feature)
-}
+use pyo3::prelude::*;
 
 #[pymodule]
 fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(feature, m)?)?;
+    m.add_function(wrap_pyfunction!(api::feature, m)?)?;
     Ok(())
 }
