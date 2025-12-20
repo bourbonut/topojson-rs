@@ -2,7 +2,9 @@ use std::{collections::HashMap, ops::Add, rc::Rc};
 
 use crate::topojson_structs::TopoJSON;
 
-pub fn wrap_stich(topology: TopoJSON, arcs: Vec<i32>) {}
+pub fn wrap_stich(topology: TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
+    Stitch::call(topology, arcs)
+}
 
 #[derive(PartialEq, Clone)]
 struct Fragment {
@@ -34,9 +36,9 @@ impl Fragment {
 //
 //     fn add(self, rhs: Self) -> Self::Output {
 //         Self {
-//             start: None,
-//             end: None,
-//             arcs: [self.arcs, rhs.arcs].concat(),
+//             start: self.start.clone(),
+//             end: rhs.end.clone(),
+//             arcs: Rc::new([&self.arcs[..], &rhs.arcs[..]].concat()),
 //         }
 //     }
 // }
@@ -62,12 +64,21 @@ struct Stitch {
 }
 
 impl Stitch {
-    fn call(topology: TopoJSON, arcs: Vec<i32>) {
+    fn call(topology: TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
         let mut stitch = Self::default();
         stitch.fragments(topology, arcs)
     }
 
-    fn fragments(&mut self, topology: TopoJSON, mut arcs: Vec<i32>) {
+    fn replace(&mut self, fragment: &Fragment) {
+        self.fragment_by_start
+            .get_mut(&fragment.start[..])
+            .map(|v| *v = fragment.clone());
+        self.fragment_by_end
+            .get_mut(&fragment.end[..])
+            .map(|v| *v = fragment.clone());
+    }
+
+    fn fragments(&mut self, topology: TopoJSON, mut arcs: Vec<i32>) -> Vec<Vec<i32>> {
         let mut empty_index: usize = 0;
 
         // Stitch empty arcs first, since they may be subsumed by other arcs.
@@ -95,35 +106,84 @@ impl Stitch {
 
         for i in arcs.iter() {
             let (start, end) = self.ends(&topology, i);
-            let start = Rc::new(start);
-            let end = Rc::new(end);
 
-            if let Some(old_end) = self.fragment_by_end.get(&start[..]).map(|f| f.end.clone()) {
+            if let Some(f_end) = self
+                .fragment_by_end
+                .get(&start[..])
+                .and_then(|f| Some(f.end.clone()))
+            {
                 self.fragment_by_end.get_mut(&start[..]).map(|f| {
                     f.push(*i);
-                    f.end = end.clone();
+                    f.end = Rc::new(end);
                 });
-                self.fragment_by_end.remove(&old_end[..]);
-                let f = &self.fragment_by_end[&start[..]];
-                if let Some(old_start) = self
+                self.fragment_by_end.remove(&f_end[..]);
+
+                let f = &self.fragment_by_end[&start[..]].clone();
+
+                if let Some(g_start) = self
                     .fragment_by_start
-                    .get(&end[..])
-                    .map(|f| f.start.clone())
+                    .get(&f.end[..])
+                    .and_then(|g| Some(g.start.clone()))
                 {
-                    self.fragment_by_start.remove(&old_start[..]);
-                    let g = &self.fragment_by_start[&end[..]];
+                    self.fragment_by_start.remove(&g_start[..]);
+                    let g = &self.fragment_by_start[&f.end[..]].clone();
+
                     let mut fg = if f == g { f.clone() } else { f + g };
+
                     fg.start = f.start.clone();
                     fg.end = g.end.clone();
-                    self.fragment_by_start
-                        .get_mut(&fg.start[..])
-                        .map(|v| *v = fg.clone());
-                    self.fragment_by_end
-                        .get_mut(&fg.end[..])
-                        .map(|v| *v = fg.clone());
+
+                    self.replace(&fg);
+                } else {
+                    self.replace(&f);
                 }
+            } else if let Some(f_start) = self
+                .fragment_by_start
+                .get(&end[..])
+                .and_then(|f| Some(f.start.clone()))
+            {
+                self.fragment_by_start.remove(&f_start[..]);
+                self.fragment_by_start.get_mut(&end[..]).map(|f| {
+                    f.unshift(*i);
+                    f.start = Rc::new(start);
+                });
+
+                let f = &self.fragment_by_end[&end[..]].clone();
+
+                if let Some(g_end) = self
+                    .fragment_by_end
+                    .get(&f.start[..])
+                    .and_then(|g| Some(g.end.clone()))
+                {
+                    self.fragment_by_end.remove(&g_end[..]);
+                    let g = &self.fragment_by_end[&f.start[..]].clone();
+
+                    let mut gf = if f == g { f.clone() } else { g + f };
+
+                    gf.start = g.start.clone();
+                    gf.end = f.end.clone();
+
+                    self.replace(&gf);
+                } else {
+                    self.replace(&f);
+                }
+            } else {
+                let f = Fragment::new(start, end, vec![*i]);
+                self.replace(&f);
             }
         }
+
+        let mut fragments = Vec::new();
+        for &i in arcs.iter() {
+            if self
+                .stitched_arcs
+                .get(&(if i < 0 { !i } else { i } as usize))
+                .is_none()
+            {
+                fragments.push(vec![i]);
+            }
+        }
+        fragments
     }
 
     fn ends(&self, topology: &TopoJSON, &i: &i32) -> (Vec<i32>, Vec<i32>) {
