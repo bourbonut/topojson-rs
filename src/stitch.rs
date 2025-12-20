@@ -1,4 +1,8 @@
-use std::{collections::HashMap, ops::Add, rc::Rc};
+use std::{
+    collections::{HashMap, hash_map::Values},
+    ops::Add,
+    rc::Rc,
+};
 
 use crate::topojson_structs::TopoJSON;
 
@@ -49,6 +53,11 @@ struct Stitch {
     fragment_by_start: HashMap<Vec<i32>, Fragment>,
     fragment_by_end: HashMap<Vec<i32>, Fragment>,
     fragments: Vec<Vec<i32>>,
+}
+
+#[inline]
+fn arc_index(i: i32) -> usize {
+    (if i < 0 { !i } else { i }) as usize
 }
 
 impl Stitch {
@@ -155,8 +164,7 @@ impl Stitch {
                     self.replace(&f);
                 }
             } else {
-                let f = Fragment::new(start, end, vec![*i]);
-                self.replace(&f);
+                self.replace(&Fragment::new(start, end, vec![*i]));
             }
         }
 
@@ -165,13 +173,14 @@ impl Stitch {
         arcs.iter()
             .filter(|&&i| {
                 self.stitched_arcs
-                    .get(&(if i < 0 { !i } else { i } as usize))
+                    .get(&arc_index(i))
                     .map_or(true, |v| *v != 0)
             })
             .for_each(|&i| self.fragments.push(vec![i]));
         self.fragments
     }
 
+    // TODO: replace `Vec<i32>` by `[i32; 2]`
     fn ends(&self, topology: &TopoJSON, &i: &i32) -> (Vec<i32>, Vec<i32>) {
         let arc = &topology.arcs[if i < 0 { !i as usize } else { i as usize }];
         let p0 = arc.first().unwrap().to_vec();
@@ -188,28 +197,17 @@ impl Stitch {
     }
 
     fn flush(&mut self) {
-        self.fragment_by_end.values().for_each(|f| {
-            self.fragment_by_start.remove(&f.start[..]);
-            f.arcs.iter().for_each(|&i| {
-                self.stitched_arcs
-                    .get_mut(&(if i < 0 { !i } else { i } as usize))
-                    .map(|v| {
-                        *v = 1;
+        let mut process_fragments =
+            |fragments: Values<Vec<i32>, Fragment>, other_map: &mut HashMap<Vec<i32>, Fragment>| {
+                fragments.for_each(|f| {
+                    other_map.remove(&f.start[..]);
+                    f.arcs.iter().for_each(|&i| {
+                        self.stitched_arcs.get_mut(&arc_index(i)).map(|v| *v = 1);
                     });
-            });
-            self.fragments.push(f.arcs.to_vec());
-        });
-
-        self.fragment_by_start.values().for_each(|f| {
-            self.fragment_by_end.remove(&f.start[..]);
-            f.arcs.iter().for_each(|&i| {
-                self.stitched_arcs
-                    .get_mut(&(if i < 0 { !i } else { i } as usize))
-                    .map(|v| {
-                        *v = 1;
-                    });
-            });
-            self.fragments.push(f.arcs.to_vec());
-        });
+                    self.fragments.push(f.arcs.to_vec());
+                });
+            };
+        process_fragments(self.fragment_by_end.values(), &mut self.fragment_by_start);
+        process_fragments(self.fragment_by_start.values(), &mut self.fragment_by_end);
     }
 }
