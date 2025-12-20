@@ -46,6 +46,7 @@ mod api;
 mod feature;
 mod geojson_structs;
 mod reverse;
+mod stitch;
 mod topojson_structs;
 mod transform;
 
