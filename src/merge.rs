@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::{BuildHasher, RandomState};
 
 use pyo3::PyResult;
 use pyo3::exceptions::PyRuntimeError;
@@ -29,36 +30,31 @@ struct MergeArcs<'a> {
 }
 
 impl<'a> MergeArcs<'a> {
-    fn call(topology: &TopoJSON, objects: &Vec<Geometry>) {
+    fn call(topology: &TopoJSON, objects: &Vec<Geometry>) -> PyResult<Geometry> {
         MergeArcs::default().merge(topology, objects)
     }
 
-    fn merge(&mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) {
+    fn merge(&mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) -> PyResult<Geometry> {
         objects.iter().for_each(|o| self.geometry(o));
         let mut visited_polygons = HashSet::new();
-        let mut visited_polygons_by_arc = HashSet::new();
+        let state = RandomState::new();
 
-        for (i, polygon) in self.polygons.iter().enumerate() {
-            if !visited_polygons.contains(&i) {
+        for polygon in self.polygons.iter() {
+            let hash = state.hash_one(polygon);
+            if !visited_polygons.contains(&hash) {
                 let mut group = Vec::new();
-                let mut neighbors: Vec<[usize; 2]> = Vec::new();
-                let mut target_polygon = Some(polygon.to_vec());
-                visited_polygons.insert(i);
+                let mut neighbors = vec![polygon.to_vec()];
+                visited_polygons.insert(hash);
 
-                while let Some(polygon) = target_polygon {
-                    target_polygon = None;
-
-                    if let Some([arc, k]) = neighbors.pop() {
-                        target_polygon = Some(self.polygons_by_arcs[&arc][k].to_vec());
-                    }
-
+                while let Some(polygon) = neighbors.pop() {
                     for ring in polygon.iter() {
                         for &arc in ring.iter() {
                             let arc = if arc < 0 { -arc } else { arc } as usize;
-                            for k in 0..self.polygons_by_arcs[&arc].len() {
-                                if !visited_polygons_by_arc.contains(&[arc, k]) {
-                                    visited_polygons_by_arc.insert([arc, k]);
-                                    neighbors.push([arc, k]);
+                            for polygon in self.polygons_by_arcs[&arc].iter() {
+                                let hash = state.hash_one(polygon);
+                                if !visited_polygons.contains(&hash) {
+                                    visited_polygons.insert(hash);
+                                    neighbors.push(polygon.to_vec());
                                 }
                             }
                         }
@@ -69,6 +65,46 @@ impl<'a> MergeArcs<'a> {
                 self.groups.push(group);
             }
         }
+
+        let mut global_arcs = Vec::new();
+        for polygons in self.groups.iter() {
+            let mut arcs = Vec::new();
+            polygons.iter().for_each(|polygon| {
+                polygon.iter().for_each(|ring| {
+                    ring.iter().for_each(|&arc| {
+                        let index = if arc < 0 { -arc } else { arc } as usize;
+                        if self.polygons_by_arcs[&index].len() < 2 {
+                            arcs.push(arc);
+                        }
+                    });
+                });
+            });
+
+            let mut arcs = stitch(topology, arcs);
+
+            let n = arcs.len();
+            if n > 1 {
+                let mut k = self.area(topology, &arcs[0])?;
+                for i in 1..n {
+                    let ki = self.area(topology, &arcs[i])?;
+                    if ki > k {
+                        arcs.swap(0, i);
+                        k = ki;
+                    }
+                }
+            }
+
+            if !arcs.is_empty() {
+                global_arcs.push(arcs);
+            }
+        }
+        Ok(Geometry {
+            r#type: "MultiPolygon".to_string(),
+            geometry: GeometryType::MultiPolygon { arcs: global_arcs },
+            id: None,
+            properties: None,
+            bbox: None,
+        })
     }
 
     fn geometry(&mut self, o: &'a Geometry) {
@@ -97,12 +133,14 @@ impl<'a> MergeArcs<'a> {
         self.polygons.push(polygon);
     }
 
-    fn area(topology: &TopoJSON, ring: Vec<i32>) -> PyResult<f64> {
+    fn area(&self, topology: &TopoJSON, ring: &Vec<i32>) -> PyResult<f64> {
         if let FeatureGeometryType::Polygon { coordinates } = Object::call(
             topology,
             &Geometry {
                 r#type: "Polygon".to_string(),
-                geometry: GeometryType::Polygon { arcs: vec![ring] },
+                geometry: GeometryType::Polygon {
+                    arcs: vec![ring.to_vec()], // TODO: remove `to_vec` and it might also remove `PyResult`
+                },
                 id: None,
                 properties: None,
                 bbox: None,

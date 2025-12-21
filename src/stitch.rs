@@ -6,7 +6,7 @@ use std::{
 
 use crate::topojson_structs::TopoJSON;
 
-pub fn stitch(topology: TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
+pub fn stitch(topology: &TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
     Stitch::call(topology, arcs)
 }
 
@@ -61,7 +61,7 @@ fn arc_index(i: i32) -> usize {
 }
 
 impl Stitch {
-    fn call(topology: TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
+    fn call(topology: &TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
         Self::default().fragments(topology, arcs)
     }
 
@@ -74,7 +74,7 @@ impl Stitch {
             .map(|v| *v = fragment.clone());
     }
 
-    fn fragments(mut self, topology: TopoJSON, mut arcs: Vec<i32>) -> Vec<Vec<i32>> {
+    fn fragments(mut self, topology: &TopoJSON, mut arcs: Vec<i32>) -> Vec<Vec<i32>> {
         let mut empty_index: usize = 0;
 
         // Stitch empty arcs first, since they may be subsumed by other arcs.
