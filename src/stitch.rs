@@ -6,7 +6,7 @@ use std::{
 
 use crate::topojson_structs::TopoJSON;
 
-pub fn wrap_stich(topology: TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
+pub fn stitch(topology: TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
     Stitch::call(topology, arcs)
 }
 
@@ -180,7 +180,7 @@ impl Stitch {
         self.fragments
     }
 
-    // TODO: replace `Vec<i32>` by `[i32; 2]`
+    // TODO: try to replace `Vec<i32>` by `[i32; 2]`
     fn ends(&self, topology: &TopoJSON, &i: &i32) -> (Vec<i32>, Vec<i32>) {
         let arc = &topology.arcs[if i < 0 { !i as usize } else { i as usize }];
         let p0 = arc.first().unwrap().to_vec();

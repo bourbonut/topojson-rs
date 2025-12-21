@@ -36,13 +36,13 @@ fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
     })
 }
 
-struct Object<'a> {
+pub struct Object<'a> {
     arcs: &'a Vec<Vec<Vec<i32>>>,
     transform_point: Box<dyn FnMut(&[f64], usize) -> Vec<f64>>,
 }
 
 impl<'a> Object<'a> {
-    fn call(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometry> {
+    pub fn call(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometry> {
         let mut object = Object {
             arcs: &topology.arcs,
             transform_point: transform(&topology.transform)?,
