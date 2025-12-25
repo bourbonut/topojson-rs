@@ -5,11 +5,11 @@ use pyo3::PyResult;
 use pyo3::exceptions::PyRuntimeError;
 
 use crate::feature::Object;
-use crate::geojson_structs::{FeatureGeometry, FeatureGeometryType};
+use crate::geojson_structs::FeatureGeometryType;
 use crate::stitch::stitch;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 
-pub fn wrap_merge(topology: &TopoJSON, objects: &Vec<Geometry>) -> PyResult<FeatureGeometry> {
+pub fn wrap_merge(topology: &TopoJSON, objects: &Vec<Geometry>) -> PyResult<FeatureGeometryType> {
     Object::call(topology, &MergeArcs::call(topology, objects)?)
 }
 
@@ -103,7 +103,6 @@ impl<'a> MergeArcs<'a> {
             }
         }
         Ok(Geometry {
-            r#type: "MultiPolygon".to_string(),
             geometry: GeometryType::MultiPolygon { arcs: global_arcs },
             id: None,
             properties: None,
@@ -141,7 +140,6 @@ impl<'a> MergeArcs<'a> {
         if let FeatureGeometryType::Polygon { coordinates } = Object::call(
             topology,
             &Geometry {
-                r#type: "Polygon".to_string(),
                 geometry: GeometryType::Polygon {
                     arcs: vec![ring.to_vec()], // TODO: remove `to_vec` and it might also remove `PyResult`
                 },
@@ -149,9 +147,7 @@ impl<'a> MergeArcs<'a> {
                 properties: None,
                 bbox: None,
             },
-        )?
-        .geometry
-        {
+        )? {
             Ok(planar_ring_area(&coordinates[0]))
         } else {
             Err(PyRuntimeError::new_err("Cannot compute the area of ring."))

@@ -1,5 +1,5 @@
 use crate::feature::wrap_feature;
-use crate::geojson_structs::{Feature, FeatureGeometry};
+use crate::geojson_structs::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
 use crate::topojson_structs::{Geometry, TopoJSON};
 use pyo3::{
@@ -25,7 +25,7 @@ pub fn feature(topology: &Bound<'_, PyDict>, o: &Bound<'_, PyAny>) -> PyResult<F
 pub fn merge(
     topology: &Bound<'_, PyDict>,
     objects: &Bound<'_, PyList>,
-) -> PyResult<FeatureGeometry> {
+) -> PyResult<FeatureGeometryType> {
     let topology: TopoJSON = topology.extract()?;
     let objects: Vec<Geometry> = objects.extract()?;
     let feature_geometry = wrap_merge(&topology, &objects)?;

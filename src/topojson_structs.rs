@@ -4,7 +4,6 @@ use pyo3::{exceptions::PyKeyError, prelude::*, types::PyDict};
 
 #[derive(Debug)]
 pub struct TopoJSON {
-    pub r#type: String,
     pub bbox: Vec<f64>,
     pub transform: Option<Transform>,
     pub objects: HashMap<String, Geometry>,
@@ -16,10 +15,6 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
 
     fn extract(obj: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let dict: Borrowed<'a, 'py, PyDict> = obj.cast()?;
-        let r#type = dict
-            .get_item("type")?
-            .ok_or_else(|| PyKeyError::new_err("\"type\" not found in the topojson"))?
-            .extract()?;
         let bbox = dict
             .get_item("bbox")?
             .ok_or_else(|| PyKeyError::new_err("\"bbox\" not found in the topojson"))?
@@ -37,7 +32,6 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
             .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in the topojson"))?
             .extract()?;
         Ok(Self {
-            r#type,
             bbox,
             transform,
             objects,
@@ -82,7 +76,6 @@ pub enum GeometryType {
 
 #[derive(Debug)]
 pub struct Geometry {
-    pub r#type: String,
     pub geometry: GeometryType,
     pub id: Option<String>,
     pub properties: Option<Properties>,
@@ -161,7 +154,6 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
         };
 
         Ok(Self {
-            r#type,
             bbox,
             geometry,
             id,

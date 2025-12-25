@@ -1,6 +1,4 @@
-use crate::geojson_structs::{
-    Feature, FeatureCollection, FeatureGeometry, FeatureGeometryType, FeatureItem,
-};
+use crate::geojson_structs::{Feature, FeatureCollection, FeatureGeometryType, FeatureItem};
 use crate::reverse::reverse;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 use crate::transform::transform;
@@ -13,10 +11,7 @@ pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
                 .into_iter()
                 .map(|o| feature_item(&topology, &o))
                 .collect::<PyResult<Vec<FeatureItem>>>()?;
-            Ok(Feature::Collection(FeatureCollection {
-                r#type: "FeatureCollection".to_string(),
-                features,
-            }))
+            Ok(Feature::Collection(FeatureCollection { features }))
         }
         _ => Ok(Feature::Item(feature_item(&topology, o)?)),
     }
@@ -32,7 +27,6 @@ fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
         bbox,
         properties,
         geometry,
-        r#type: String::from("Feature"),
     })
 }
 
@@ -42,7 +36,7 @@ pub struct Object<'a> {
 }
 
 impl<'a> Object<'a> {
-    pub fn call(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometry> {
+    pub fn call(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
         let mut object = Object {
             arcs: &topology.arcs,
             transform_point: transform(&topology.transform)?,
@@ -96,52 +90,30 @@ impl<'a> Object<'a> {
         arcs.iter().map(|arcs| self.ring(arcs)).collect()
     }
 
-    fn geometry(&mut self, o: &Geometry) -> FeatureGeometry {
-        let r#type = o.r#type.to_string();
+    fn geometry(&mut self, o: &Geometry) -> FeatureGeometryType {
         match &o.geometry {
             GeometryType::GeometryCollection { geometries } => {
-                return FeatureGeometry {
-                    r#type,
-                    geometry: FeatureGeometryType::GeometryCollection {
-                        geometries: geometries.iter().map(|o| self.geometry(o)).collect(),
-                    },
+                return FeatureGeometryType::GeometryCollection {
+                    geometries: geometries.iter().map(|o| self.geometry(o)).collect(),
                 };
             }
-            GeometryType::Point { coordinates } => FeatureGeometry {
-                r#type,
-                geometry: FeatureGeometryType::Point {
-                    coordinates: self.point(coordinates),
-                },
+            GeometryType::Point { coordinates } => FeatureGeometryType::Point {
+                coordinates: self.point(coordinates),
             },
-            GeometryType::MultiPoint { coordinates } => FeatureGeometry {
-                r#type,
-                geometry: FeatureGeometryType::MultiPoint {
-                    coordinates: coordinates.iter().map(|p| self.point(p)).collect(),
-                },
+            GeometryType::MultiPoint { coordinates } => FeatureGeometryType::MultiPoint {
+                coordinates: coordinates.iter().map(|p| self.point(p)).collect(),
             },
-            GeometryType::LineString { arcs } => FeatureGeometry {
-                r#type,
-                geometry: FeatureGeometryType::LineString {
-                    coordinates: self.line(arcs),
-                },
+            GeometryType::LineString { arcs } => FeatureGeometryType::LineString {
+                coordinates: self.line(arcs),
             },
-            GeometryType::MultiLineString { arcs } => FeatureGeometry {
-                r#type,
-                geometry: FeatureGeometryType::MultiLineString {
-                    coordinates: arcs.iter().map(|arcs| self.line(arcs)).collect(),
-                },
+            GeometryType::MultiLineString { arcs } => FeatureGeometryType::MultiLineString {
+                coordinates: arcs.iter().map(|arcs| self.line(arcs)).collect(),
             },
-            GeometryType::Polygon { arcs } => FeatureGeometry {
-                r#type,
-                geometry: FeatureGeometryType::Polygon {
-                    coordinates: self.polygon(arcs),
-                },
+            GeometryType::Polygon { arcs } => FeatureGeometryType::Polygon {
+                coordinates: self.polygon(arcs),
             },
-            GeometryType::MultiPolygon { arcs } => FeatureGeometry {
-                r#type,
-                geometry: FeatureGeometryType::MultiPolygon {
-                    coordinates: arcs.iter().map(|arcs| self.polygon(arcs)).collect(),
-                },
+            GeometryType::MultiPolygon { arcs } => FeatureGeometryType::MultiPolygon {
+                coordinates: arcs.iter().map(|arcs| self.polygon(arcs)).collect(),
             },
         }
     }
@@ -156,7 +128,6 @@ mod tests {
 
     fn simple_topology(object: Geometry) -> TopoJSON {
         TopoJSON {
-            r#type: "Topology".to_string(),
             bbox: vec![],
             transform: Some(Transform {
                 scale: vec![1., 1.],
@@ -176,7 +147,6 @@ mod tests {
     #[test]
     fn test_feature_1() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
             },
@@ -186,7 +156,7 @@ mod tests {
         });
         if let Feature::Item(feature_item) = wrap_feature(&t, &t.objects["foo"])? {
             assert!(matches!(
-                feature_item.geometry.geometry,
+                feature_item.geometry,
                 FeatureGeometryType::Polygon { .. }
             ));
         } else {
@@ -198,7 +168,6 @@ mod tests {
     #[test]
     fn test_feature_2() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Point".to_string(),
             geometry: GeometryType::Point {
                 coordinates: vec![0., 0.],
             },
@@ -210,13 +179,9 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "Point".to_string(),
-                    geometry: FeatureGeometryType::Point {
-                        coordinates: vec![0., 0.]
-                    }
+                geometry: FeatureGeometryType::Point {
+                    coordinates: vec![0., 0.]
                 },
                 id: None,
                 bbox: None
@@ -228,7 +193,6 @@ mod tests {
     #[test]
     fn test_feature_3() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "MultiPoint".to_string(),
             geometry: GeometryType::MultiPoint {
                 coordinates: vec![vec![0., 0.]],
             },
@@ -240,13 +204,9 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "MultiPoint".to_string(),
-                    geometry: FeatureGeometryType::MultiPoint {
-                        coordinates: vec![vec![0., 0.]]
-                    }
+                geometry: FeatureGeometryType::MultiPoint {
+                    coordinates: vec![vec![0., 0.]]
                 },
                 id: None,
                 bbox: None
@@ -258,7 +218,6 @@ mod tests {
     #[test]
     fn test_feature_4() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "LineString".to_string(),
             geometry: GeometryType::LineString { arcs: vec![0] },
             id: None,
             properties: None,
@@ -268,19 +227,15 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "LineString".to_string(),
-                    geometry: FeatureGeometryType::LineString {
-                        coordinates: vec![
-                            vec![0., 0.],
-                            vec![1., 0.],
-                            vec![1., 1.],
-                            vec![0., 1.],
-                            vec![0., 0.]
-                        ]
-                    }
+                geometry: FeatureGeometryType::LineString {
+                    coordinates: vec![
+                        vec![0., 0.],
+                        vec![1., 0.],
+                        vec![1., 1.],
+                        vec![0., 1.],
+                        vec![0., 0.]
+                    ]
                 },
                 id: None,
                 bbox: None
@@ -292,7 +247,6 @@ mod tests {
     #[test]
     fn test_feature_5() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "MultiLineString".to_string(),
             geometry: GeometryType::MultiLineString {
                 arcs: vec![vec![0]],
             },
@@ -304,19 +258,15 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "MultiLineString".to_string(),
-                    geometry: FeatureGeometryType::MultiLineString {
-                        coordinates: vec![vec![
-                            vec![0., 0.],
-                            vec![1., 0.],
-                            vec![1., 1.],
-                            vec![0., 1.],
-                            vec![0., 0.]
-                        ]]
-                    }
+                geometry: FeatureGeometryType::MultiLineString {
+                    coordinates: vec![vec![
+                        vec![0., 0.],
+                        vec![1., 0.],
+                        vec![1., 1.],
+                        vec![0., 1.],
+                        vec![0., 0.]
+                    ]]
                 },
                 id: None,
                 bbox: None
@@ -328,7 +278,6 @@ mod tests {
     #[test]
     fn test_feature_6() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "LineString".to_string(),
             geometry: GeometryType::LineString { arcs: vec![3] },
             id: None,
             properties: None,
@@ -338,13 +287,9 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "LineString".to_string(),
-                    geometry: FeatureGeometryType::LineString {
-                        coordinates: vec![vec![1., 1.], vec![1., 1.],]
-                    }
+                geometry: FeatureGeometryType::LineString {
+                    coordinates: vec![vec![1., 1.], vec![1., 1.],]
                 },
                 id: None,
                 bbox: None
@@ -352,7 +297,6 @@ mod tests {
         );
 
         let t = simple_topology(Geometry {
-            r#type: "MultiLineString".to_string(),
             geometry: GeometryType::MultiLineString {
                 arcs: vec![vec![3], vec![4]],
             },
@@ -364,16 +308,12 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "MultiLineString".to_string(),
-                    geometry: FeatureGeometryType::MultiLineString {
-                        coordinates: vec![
-                            vec![vec![1., 1.], vec![1., 1.],],
-                            vec![vec![0., 0.], vec![0., 0.],]
-                        ]
-                    }
+                geometry: FeatureGeometryType::MultiLineString {
+                    coordinates: vec![
+                        vec![vec![1., 1.], vec![1., 1.],],
+                        vec![vec![0., 0.], vec![0., 0.],]
+                    ]
                 },
                 id: None,
                 bbox: None
@@ -385,7 +325,6 @@ mod tests {
     #[test]
     fn test_feature_7() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
             },
@@ -397,19 +336,15 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "Polygon".to_string(),
-                    geometry: FeatureGeometryType::Polygon {
-                        coordinates: vec![vec![
-                            vec![0., 0.],
-                            vec![1., 0.],
-                            vec![1., 1.],
-                            vec![0., 1.],
-                            vec![0., 0.]
-                        ]]
-                    }
+                geometry: FeatureGeometryType::Polygon {
+                    coordinates: vec![vec![
+                        vec![0., 0.],
+                        vec![1., 0.],
+                        vec![1., 1.],
+                        vec![0., 1.],
+                        vec![0., 0.]
+                    ]]
                 },
                 id: None,
                 bbox: None
@@ -421,7 +356,6 @@ mod tests {
     #[test]
     fn test_feature_8() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "MultiPolygon".to_string(),
             geometry: GeometryType::MultiPolygon {
                 arcs: vec![vec![vec![0]]],
             },
@@ -433,19 +367,15 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "MultiPolygon".to_string(),
-                    geometry: FeatureGeometryType::MultiPolygon {
-                        coordinates: vec![vec![vec![
-                            vec![0., 0.],
-                            vec![1., 0.],
-                            vec![1., 1.],
-                            vec![0., 1.],
-                            vec![0., 0.]
-                        ]]]
-                    }
+                geometry: FeatureGeometryType::MultiPolygon {
+                    coordinates: vec![vec![vec![
+                        vec![0., 0.],
+                        vec![1., 0.],
+                        vec![1., 1.],
+                        vec![0., 1.],
+                        vec![0., 0.]
+                    ]]]
                 },
                 id: None,
                 bbox: None
@@ -457,7 +387,6 @@ mod tests {
     #[test]
     fn test_feature_9() -> PyResult<()> {
         let topology = TopoJSON {
-            r#type: "Topology".to_string(),
             bbox: vec![],
             transform: Some(Transform {
                 scale: vec![1., 1.],
@@ -467,7 +396,6 @@ mod tests {
                 (
                     "foo".to_string(),
                     Geometry {
-                        r#type: "Polygon".to_string(),
                         geometry: GeometryType::Polygon {
                             arcs: vec![vec![0]],
                         },
@@ -479,7 +407,6 @@ mod tests {
                 (
                     "bar".to_string(),
                     Geometry {
-                        r#type: "Polygon".to_string(),
                         geometry: GeometryType::Polygon {
                             arcs: vec![vec![0, 1]],
                         },
@@ -493,7 +420,7 @@ mod tests {
         };
 
         if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["foo"])? {
-            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry.geometry {
+            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
                     vec![vec![vec![0., 0.], vec![1., 1.], vec![0., 0.], vec![0., 0.]]]
@@ -506,7 +433,7 @@ mod tests {
         }
 
         if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["bar"])? {
-            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry.geometry {
+            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
                     vec![vec![vec![0., 0.], vec![1., 1.], vec![0., 0.], vec![0., 0.]]]
@@ -524,10 +451,8 @@ mod tests {
     #[test]
     fn test_feature_10() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "GeometryCollection".to_string(),
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
-                    r#type: "MultiPolygon".to_string(),
                     geometry: GeometryType::MultiPolygon {
                         arcs: vec![vec![vec![0]]],
                     },
@@ -544,21 +469,16 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
-                r#type: "FeatureCollection".to_string(),
                 features: vec![FeatureItem {
-                    r#type: "Feature".to_string(),
                     properties: None,
-                    geometry: FeatureGeometry {
-                        r#type: "MultiPolygon".to_string(),
-                        geometry: FeatureGeometryType::MultiPolygon {
-                            coordinates: vec![vec![vec![
-                                vec![0., 0.],
-                                vec![1., 0.],
-                                vec![1., 1.],
-                                vec![0., 1.],
-                                vec![0., 0.]
-                            ]]]
-                        }
+                    geometry: FeatureGeometryType::MultiPolygon {
+                        coordinates: vec![vec![vec![
+                            vec![0., 0.],
+                            vec![1., 0.],
+                            vec![1., 1.],
+                            vec![0., 1.],
+                            vec![0., 0.]
+                        ]]]
                     },
                     id: None,
                     bbox: None
@@ -571,10 +491,8 @@ mod tests {
     #[test]
     fn test_feature_11() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "GeometryCollection".to_string(),
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
-                    r#type: "Point".to_string(),
                     geometry: GeometryType::Point {
                         coordinates: vec![0., 0.],
                     },
@@ -591,15 +509,10 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
-                r#type: "FeatureCollection".to_string(),
                 features: vec![FeatureItem {
-                    r#type: "Feature".to_string(),
                     properties: None,
-                    geometry: FeatureGeometry {
-                        r#type: "Point".to_string(),
-                        geometry: FeatureGeometryType::Point {
-                            coordinates: vec![0., 0.]
-                        }
+                    geometry: FeatureGeometryType::Point {
+                        coordinates: vec![0., 0.]
                     },
                     id: None,
                     bbox: None
@@ -612,10 +525,8 @@ mod tests {
     #[test]
     fn test_feature_12() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "GeometryCollection".to_string(),
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
-                    r#type: "Point".to_string(),
                     geometry: GeometryType::Point {
                         coordinates: vec![0., 0.],
                     },
@@ -632,15 +543,10 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
-                r#type: "FeatureCollection".to_string(),
                 features: vec![FeatureItem {
-                    r#type: "Feature".to_string(),
                     properties: None,
-                    geometry: FeatureGeometry {
-                        r#type: "Point".to_string(),
-                        geometry: FeatureGeometryType::Point {
-                            coordinates: vec![0., 0.]
-                        }
+                    geometry: FeatureGeometryType::Point {
+                        coordinates: vec![0., 0.]
                     },
                     id: Some("feature".to_string()),
                     bbox: None
@@ -653,10 +559,8 @@ mod tests {
     #[test]
     fn test_feature_13() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "GeometryCollection".to_string(),
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
-                    r#type: "Point".to_string(),
                     geometry: GeometryType::Point {
                         coordinates: vec![0., 0.],
                     },
@@ -677,17 +581,12 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
-                r#type: "FeatureCollection".to_string(),
                 features: vec![FeatureItem {
-                    r#type: "Feature".to_string(),
                     properties: Some(Properties {
                         name: "feature".to_string()
                     }),
-                    geometry: FeatureGeometry {
-                        r#type: "Point".to_string(),
-                        geometry: FeatureGeometryType::Point {
-                            coordinates: vec![0., 0.]
-                        }
+                    geometry: FeatureGeometryType::Point {
+                        coordinates: vec![0., 0.]
                     },
                     id: None,
                     bbox: None
@@ -700,7 +599,6 @@ mod tests {
     #[test]
     fn test_feature_14() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
             },
@@ -719,7 +617,6 @@ mod tests {
     #[test]
     fn test_feature_15() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
             },
@@ -745,7 +642,6 @@ mod tests {
     #[test]
     fn test_feature_16() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
             },
@@ -765,7 +661,6 @@ mod tests {
     #[test]
     fn test_feature_17() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
             },
@@ -774,7 +669,7 @@ mod tests {
             bbox: None,
         });
         if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"])? {
-            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry.geometry {
+            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
                     vec![vec![
@@ -797,7 +692,6 @@ mod tests {
     #[test]
     fn test_feature_18() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![!0]],
             },
@@ -806,7 +700,7 @@ mod tests {
             bbox: None,
         });
         if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"])? {
-            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry.geometry {
+            if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
                     vec![vec![
@@ -829,7 +723,6 @@ mod tests {
     #[test]
     fn test_feature_19() -> PyResult<()> {
         let t = simple_topology(Geometry {
-            r#type: "LineString".to_string(),
             geometry: GeometryType::LineString { arcs: vec![1, 2] },
             id: None,
             properties: None,
@@ -839,19 +732,15 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "LineString".to_string(),
-                    geometry: FeatureGeometryType::LineString {
-                        coordinates: vec![
-                            vec![0., 0.],
-                            vec![1., 0.],
-                            vec![1., 1.],
-                            vec![0., 1.],
-                            vec![0., 0.]
-                        ]
-                    }
+                geometry: FeatureGeometryType::LineString {
+                    coordinates: vec![
+                        vec![0., 0.],
+                        vec![1., 0.],
+                        vec![1., 1.],
+                        vec![0., 1.],
+                        vec![0., 0.]
+                    ]
                 },
                 id: None,
                 bbox: None
@@ -859,7 +748,6 @@ mod tests {
         );
 
         let t = simple_topology(Geometry {
-            r#type: "Polygon".to_string(),
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![!2, !1]],
             },
@@ -871,19 +759,15 @@ mod tests {
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
-                r#type: "Feature".to_string(),
                 properties: None,
-                geometry: FeatureGeometry {
-                    r#type: "Polygon".to_string(),
-                    geometry: FeatureGeometryType::Polygon {
-                        coordinates: vec![vec![
-                            vec![0., 0.],
-                            vec![0., 1.],
-                            vec![1., 1.],
-                            vec![1., 0.],
-                            vec![0., 0.]
-                        ]]
-                    }
+                geometry: FeatureGeometryType::Polygon {
+                    coordinates: vec![vec![
+                        vec![0., 0.],
+                        vec![0., 1.],
+                        vec![1., 1.],
+                        vec![1., 0.],
+                        vec![0., 0.]
+                    ]]
                 },
                 id: None,
                 bbox: None
