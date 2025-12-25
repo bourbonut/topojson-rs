@@ -5,9 +5,13 @@ use pyo3::PyResult;
 use pyo3::exceptions::PyRuntimeError;
 
 use crate::feature::Object;
-use crate::geojson_structs::FeatureGeometryType;
+use crate::geojson_structs::{FeatureGeometry, FeatureGeometryType};
 use crate::stitch::stitch;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
+
+pub fn wrap_merge(topology: &TopoJSON, objects: &Vec<Geometry>) -> PyResult<FeatureGeometry> {
+    Object::call(topology, &MergeArcs::call(topology, objects)?)
+}
 
 fn planar_ring_area(ring: &Vec<Vec<f64>>) -> f64 {
     let mut i = 0;

@@ -56,5 +56,6 @@ use pyo3::prelude::*;
 #[pymodule]
 fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(api::feature, m)?)?;
+    m.add_function(wrap_pyfunction!(api::merge, m)?)?;
     Ok(())
 }
