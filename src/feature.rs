@@ -146,3 +146,53 @@ impl<'a> Object<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::topojson_structs::Transform;
+    use std::collections::HashMap;
+
+    use super::*;
+
+    fn simple_topology(object: Geometry) -> TopoJSON {
+        TopoJSON {
+            r#type: "Topology".to_string(),
+            bbox: vec![],
+            transform: Some(Transform {
+                scale: vec![1., 1.],
+                translate: vec![0., 0.],
+            }),
+            objects: HashMap::from_iter([("foo".to_string(), object)]),
+            arcs: vec![
+                vec![vec![0, 0], vec![1, 0], vec![0, 1], vec![-1, 0], vec![0, -1]],
+                vec![vec![0, 0], vec![1, 0], vec![0, 1]],
+                vec![vec![1, 1], vec![-1, 0], vec![0, -1]],
+                vec![vec![1, 1]],
+                vec![vec![0, 0]],
+            ],
+        }
+    }
+
+    #[test]
+    fn test_feature_1() -> PyResult<()> {
+        let t = simple_topology(Geometry {
+            r#type: "Polygon".to_string(),
+            geometry: GeometryType::Polygon {
+                arcs: vec![vec![0]],
+            },
+            id: None,
+            properties: None,
+            bbox: None,
+        });
+        if let Feature::Item(feature_item) = wrap_feature(&t, &t.objects["foo"])? {
+            assert_eq!(feature_item.geometry.r#type, "Polygon");
+            assert!(matches!(
+                feature_item.geometry.geometry,
+                FeatureGeometryType::Polygon { .. }
+            ));
+        } else {
+            unreachable!("Result should be variant of Feature::Item")
+        }
+        Ok(())
+    }
+}
