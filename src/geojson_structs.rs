@@ -1,7 +1,7 @@
 use crate::topojson_structs::Properties;
 use pyo3::{prelude::*, types::PyDict};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Feature {
     Collection(FeatureCollection),
     Item(FeatureItem),
@@ -20,7 +20,7 @@ impl<'py> IntoPyObject<'py> for Feature {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FeatureCollection {
     pub r#type: String,
     pub features: Vec<FeatureItem>,
@@ -39,7 +39,7 @@ impl<'py> IntoPyObject<'py> for FeatureCollection {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FeatureItem {
     pub r#type: String,
     pub properties: Option<Properties>,
@@ -71,7 +71,7 @@ impl<'py> IntoPyObject<'py> for FeatureItem {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FeatureGeometryType {
     GeometryCollection {
         geometries: Vec<FeatureGeometry>,
@@ -96,7 +96,7 @@ pub enum FeatureGeometryType {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FeatureGeometry {
     pub r#type: String,
     pub geometry: FeatureGeometryType,

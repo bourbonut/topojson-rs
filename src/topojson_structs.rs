@@ -170,7 +170,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Properties {
     pub name: String,
 }
