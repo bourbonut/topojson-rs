@@ -10,7 +10,7 @@ pub fn stitch(topology: &TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
     Stitch::call(topology, arcs)
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 struct Fragment {
     start: Rc<Vec<i32>>,
     end: Rc<Vec<i32>>,

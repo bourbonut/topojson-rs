@@ -53,7 +53,7 @@ impl<'a> MergeArcs<'a> {
                 while let Some(polygon) = neighbors.pop() {
                     for ring in polygon.iter() {
                         for &arc in ring.iter() {
-                            let arc = if arc < 0 { -arc } else { arc } as usize;
+                            let arc = if arc < 0 { !arc } else { arc } as usize;
                             for polygon in self.polygons_by_arcs[&arc].iter() {
                                 let hash = state.hash_one(polygon);
                                 if !visited_polygons.contains(&hash) {
@@ -76,7 +76,7 @@ impl<'a> MergeArcs<'a> {
             polygons.iter().for_each(|polygon| {
                 polygon.iter().for_each(|ring| {
                     ring.iter().for_each(|&arc| {
-                        let index = if arc < 0 { -arc } else { arc } as usize;
+                        let index = if arc < 0 { !arc } else { arc } as usize;
                         if self.polygons_by_arcs[&index].len() < 2 {
                             arcs.push(arc);
                         }
@@ -117,7 +117,7 @@ impl<'a> MergeArcs<'a> {
             }
             GeometryType::Polygon { arcs } => self.extract(&arcs),
             GeometryType::MultiPolygon { arcs } => {
-                arcs.iter().for_each(|polygons| self.extract(polygons))
+                arcs.iter().for_each(|polygon| self.extract(polygon))
             }
             _ => (),
         }
@@ -126,7 +126,7 @@ impl<'a> MergeArcs<'a> {
     fn extract(&mut self, polygon: &'a Vec<Vec<i32>>) {
         polygon.iter().for_each(|ring| {
             ring.iter().for_each(|&arc| {
-                let arc = if arc < 0 { -arc } else { arc } as usize;
+                let arc = if arc < 0 { !arc } else { arc } as usize;
                 self.polygons_by_arcs
                     .entry(arc)
                     .and_modify(|polygons: &mut Vec<Vec<Vec<i32>>>| polygons.push(polygon.to_vec()))
@@ -152,5 +152,98 @@ impl<'a> MergeArcs<'a> {
         } else {
             Err(PyRuntimeError::new_err("Cannot compute the area of ring."))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_merge_1() -> PyResult<()> {
+        let topology = TopoJSON {
+            objects: HashMap::new(),
+            bbox: Vec::new(),
+            transform: None,
+            arcs: Vec::new(),
+        };
+        let merge = wrap_merge(&topology, &Vec::new())?;
+        assert_eq!(
+            merge,
+            FeatureGeometryType::MultiPolygon {
+                coordinates: Vec::new()
+            }
+        );
+        Ok(())
+    }
+
+    //
+    // +----+----+            +----+----+
+    // |    |    |            |         |
+    // |    |    |    ==>     |         |
+    // |    |    |            |         |
+    // +----+----+            +----+----+
+    //
+    #[test]
+    fn test_merge_2() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![0, 1]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![-1, 2]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![
+                vec![vec![1, 1], vec![1, 0]],
+                vec![vec![1, 0], vec![0, 0], vec![0, 1], vec![1, 1]],
+                vec![vec![1, 1], vec![2, 1], vec![2, 0], vec![1, 0]],
+            ],
+        };
+        if let GeometryType::GeometryCollection { geometries } =
+            &topology.objects["collection"].geometry
+        {
+            let merge = wrap_merge(&topology, &geometries)?;
+            assert_eq!(
+                merge,
+                FeatureGeometryType::MultiPolygon {
+                    coordinates: vec![vec![vec![
+                        vec![1., 0.],
+                        vec![0., 0.],
+                        vec![0., 1.],
+                        vec![1., 1.],
+                        vec![2., 1.],
+                        vec![2., 0.],
+                        vec![1., 0.]
+                    ]]]
+                }
+            );
+        } else {
+            panic!("Topology must have a collection of geometries.")
+        }
+        Ok(())
     }
 }
