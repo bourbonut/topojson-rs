@@ -445,37 +445,42 @@ mod tests {
         if let GeometryType::GeometryCollection { geometries } =
             &topology.objects["collection"].geometry
         {
-            let merge = wrap_merge(&topology, &geometries)?;
-            assert_eq!(
-                merge,
-                FeatureGeometryType::MultiPolygon {
-                    coordinates: vec![vec![
-                        vec![
-                            vec![3., 0.],
-                            vec![0., 0.],
-                            vec![0., 3.],
-                            vec![3., 3.],
-                            vec![6., 3.],
-                            vec![6., 0.],
-                            vec![3., 0.]
-                        ],
-                        vec![
-                            vec![1., 1.],
-                            vec![2., 1.],
-                            vec![2., 2.],
-                            vec![1., 2.],
-                            vec![1., 1.]
-                        ],
-                        vec![
-                            vec![4., 1.],
-                            vec![5., 1.],
-                            vec![5., 2.],
-                            vec![4., 2.],
-                            vec![4., 1.]
-                        ]
-                    ]]
+            // Special case: since `HashMap` are unordered, the coordinates may be unordered too.
+            // So instead of checking if coordinates are the same, the test checks if sub parts of
+            // coordinates are present in final result
+            if let FeatureGeometryType::MultiPolygon { coordinates } =
+                wrap_merge(&topology, &geometries)?
+            {
+                for subpart in [
+                    vec![
+                        vec![3., 0.],
+                        vec![0., 0.],
+                        vec![0., 3.],
+                        vec![3., 3.],
+                        vec![6., 3.],
+                        vec![6., 0.],
+                        vec![3., 0.],
+                    ],
+                    vec![
+                        vec![1., 1.],
+                        vec![2., 1.],
+                        vec![2., 2.],
+                        vec![1., 2.],
+                        vec![1., 1.],
+                    ],
+                    vec![
+                        vec![4., 1.],
+                        vec![5., 1.],
+                        vec![5., 2.],
+                        vec![4., 2.],
+                        vec![4., 1.],
+                    ],
+                ] {
+                    assert!(coordinates[0].contains(&subpart));
                 }
-            );
+            } else {
+                panic!("Feature Geometry Type must be 'MultiPolygon'.")
+            }
         } else {
             panic!("Topology must have a collection of geometries.")
         }
