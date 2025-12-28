@@ -31,24 +31,17 @@ impl Fragment {
     }
 }
 
-trait BetweenFragments {
+trait AddFragments {
     fn add_fragment(&self, other: &Rc<RefCell<Fragment>>) -> Rc<RefCell<Fragment>>;
-    fn cmp_fragment(&self, other: &Rc<RefCell<Fragment>>) -> bool;
 }
 
-impl BetweenFragments for Rc<RefCell<Fragment>> {
+impl AddFragments for Rc<RefCell<Fragment>> {
     fn add_fragment(&self, other: &Rc<RefCell<Fragment>>) -> Rc<RefCell<Fragment>> {
         Rc::new(RefCell::new(Fragment {
             start: self.borrow().start.clone(),
             end: other.borrow().end.clone(),
             arcs: [&self.borrow().arcs[..], &other.borrow().arcs[..]].concat(),
         }))
-    }
-
-    fn cmp_fragment(&self, other: &Rc<RefCell<Fragment>>) -> bool {
-        let f = self.borrow();
-        let g = other.borrow();
-        f.start == g.start && f.end == g.end && f.arcs == g.arcs
     }
 }
 
@@ -126,8 +119,6 @@ impl Stitch {
             arcs[j] = t;
         }
 
-        // HashMap<KeyType, Rc<RefCell<T>>>
-
         for i in arcs.iter() {
             let (start, end) = self.ends(&topology, i);
 
@@ -141,7 +132,7 @@ impl Stitch {
                 if let Some(g) = self.fragment_by_start.get(&end).cloned() {
                     self.fragment_by_start.remove(&g.borrow().start);
 
-                    let fg = if f.cmp_fragment(&g) {
+                    let fg = if f == g {
                         f.clone()
                     } else {
                         f.add_fragment(&g)
@@ -160,7 +151,7 @@ impl Stitch {
                 if let Some(g) = self.fragment_by_end.get(&start).cloned() {
                     self.fragment_by_end.remove(&g.borrow().end);
 
-                    let fg = if f.cmp_fragment(&g) {
+                    let fg = if f == g {
                         f.clone()
                     } else {
                         g.add_fragment(&f)
@@ -214,5 +205,47 @@ impl Stitch {
             };
         process_fragments(self.fragment_by_end.values(), &mut self.fragment_by_start);
         process_fragments(self.fragment_by_start.values(), &mut self.fragment_by_end);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eq_fragment() {
+        let f = Rc::new(RefCell::new(Fragment::new([1, 0], [2, 0], vec![1])));
+        let f_same = Rc::new(RefCell::new(Fragment::new([1, 0], [2, 0], vec![1])));
+        let g = Rc::new(RefCell::new(Fragment::new([1, 1], [2, 0], vec![1])));
+        let g_clone = g.clone();
+        assert!(f == f_same);
+        assert!(f != g);
+        assert!(g == g_clone);
+    }
+
+    #[test]
+    fn test_push_fragment() {
+        let f = Rc::new(RefCell::new(Fragment::new([1, 0], [2, 0], vec![1])));
+        let g = f.clone();
+        assert_eq!(g.borrow().arcs.len(), 1);
+        {
+            f.borrow_mut().push(1);
+        }
+        assert_eq!(g.borrow().arcs.len(), 2);
+    }
+
+    #[test]
+    fn test_unshift_fragment() {
+        let f = Rc::new(RefCell::new(Fragment::new([1, 0], [2, 0], vec![1])));
+        let g = f.clone();
+        assert_eq!(g.borrow().arcs.len(), 1);
+        {
+            let mut borrow_mut = f.borrow_mut();
+            for i in 0..=10 {
+                borrow_mut.unshift(i);
+            }
+        }
+        assert_eq!(g.borrow().arcs.len(), 12);
+        assert_eq!(g.borrow().arcs[0], 10);
     }
 }
