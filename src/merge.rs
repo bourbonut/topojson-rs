@@ -246,4 +246,417 @@ mod tests {
         }
         Ok(())
     }
+
+    //
+    // +----+ +----+            +----+ +----+
+    // |    | |    |            |    | |    |
+    // |    | |    |    ==>     |    | |    |
+    // |    | |    |            |    | |    |
+    // +----+ +----+            +----+ +----+
+    //
+    #[test]
+    fn test_merge_3() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![0]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![1]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![
+                vec![vec![0, 0], vec![0, 1], vec![1, 1], vec![1, 0], vec![0, 0]],
+                vec![vec![2, 0], vec![2, 1], vec![3, 1], vec![3, 0], vec![2, 0]],
+            ],
+        };
+        if let GeometryType::GeometryCollection { geometries } =
+            &topology.objects["collection"].geometry
+        {
+            let merge = wrap_merge(&topology, &geometries)?;
+            assert_eq!(
+                merge,
+                FeatureGeometryType::MultiPolygon {
+                    coordinates: vec![
+                        vec![vec![
+                            vec![0., 0.],
+                            vec![0., 1.],
+                            vec![1., 1.],
+                            vec![1., 0.],
+                            vec![0., 0.]
+                        ]],
+                        vec![vec![
+                            vec![2., 0.],
+                            vec![2., 1.],
+                            vec![3., 1.],
+                            vec![3., 0.],
+                            vec![2., 0.]
+                        ]]
+                    ]
+                }
+            );
+        } else {
+            panic!("Topology must have a collection of geometries.")
+        }
+        Ok(())
+    }
+
+    //
+    // +-----------+            +-----------+
+    // |           |            |           |
+    // |   +---+   |    ==>     |           |
+    // |   |   |   |            |           |
+    // |   +---+   |            |           |
+    // |           |            |           |
+    // +-----------+            +-----------+
+    //
+    #[test]
+    fn test_merge_4() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![0], vec![1]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![-2]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![
+                vec![vec![0, 0], vec![0, 3], vec![3, 3], vec![3, 0], vec![0, 0]],
+                vec![vec![1, 1], vec![2, 1], vec![2, 2], vec![1, 2], vec![1, 1]],
+            ],
+        };
+        if let GeometryType::GeometryCollection { geometries } =
+            &topology.objects["collection"].geometry
+        {
+            let merge = wrap_merge(&topology, &geometries)?;
+            assert_eq!(
+                merge,
+                FeatureGeometryType::MultiPolygon {
+                    coordinates: vec![vec![vec![
+                        vec![0., 0.],
+                        vec![0., 3.],
+                        vec![3., 3.],
+                        vec![3., 0.],
+                        vec![0., 0.]
+                    ]]]
+                }
+            );
+        } else {
+            panic!("Topology must have a collection of geometries.")
+        }
+        Ok(())
+    }
+
+    //
+    // +-----------+-----------+            +-----------+-----------+
+    // |           |           |            |                       |
+    // |   +---+   |   +---+   |    ==>     |   +---+       +---+   |
+    // |   |   |   |   |   |   |            |   |   |       |   |   |
+    // |   +---+   |   +---+   |            |   +---+       +---+   |
+    // |           |           |            |                       |
+    // +-----------+-----------+            +-----------+-----------+
+    //
+    #[test]
+    fn test_merge_5() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![0, 1], vec![2]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![-1, 3], vec![4]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![
+                vec![vec![3, 3], vec![3, 0]],
+                vec![vec![3, 0], vec![0, 0], vec![0, 3], vec![3, 3]],
+                vec![vec![1, 1], vec![2, 1], vec![2, 2], vec![1, 2], vec![1, 1]],
+                vec![vec![3, 3], vec![6, 3], vec![6, 0], vec![3, 0]],
+                vec![vec![4, 1], vec![5, 1], vec![5, 2], vec![4, 2], vec![4, 1]],
+            ],
+        };
+        if let GeometryType::GeometryCollection { geometries } =
+            &topology.objects["collection"].geometry
+        {
+            let merge = wrap_merge(&topology, &geometries)?;
+            assert_eq!(
+                merge,
+                FeatureGeometryType::MultiPolygon {
+                    coordinates: vec![vec![
+                        vec![
+                            vec![3., 0.],
+                            vec![0., 0.],
+                            vec![0., 3.],
+                            vec![3., 3.],
+                            vec![6., 3.],
+                            vec![6., 0.],
+                            vec![3., 0.]
+                        ],
+                        vec![
+                            vec![1., 1.],
+                            vec![2., 1.],
+                            vec![2., 2.],
+                            vec![1., 2.],
+                            vec![1., 1.]
+                        ],
+                        vec![
+                            vec![4., 1.],
+                            vec![5., 1.],
+                            vec![5., 2.],
+                            vec![4., 2.],
+                            vec![4., 1.]
+                        ]
+                    ]]
+                }
+            );
+        } else {
+            panic!("Topology must have a collection of geometries.")
+        }
+        Ok(())
+    }
+
+    //
+    // +-------+-------+            +-------+-------+
+    // |       |       |            |               |
+    // |   +---+---+   |    ==>     |   +---+---+   |
+    // |   |       |   |            |   |       |   |
+    // |   +---+---+   |            |   +---+---+   |
+    // |       |       |            |               |
+    // +-------+-------+            +-------+-------+
+    //
+    #[test]
+    fn test_merge_6() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![0, 1, 2, 3]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![-3, 4, -1, 5]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![
+                vec![vec![2, 3], vec![2, 2]],
+                vec![vec![2, 2], vec![1, 2], vec![1, 1], vec![2, 1]],
+                vec![vec![2, 1], vec![2, 0]],
+                vec![vec![2, 0], vec![0, 0], vec![0, 3], vec![2, 3]],
+                vec![vec![2, 1], vec![3, 1], vec![3, 2], vec![2, 2]],
+                vec![vec![2, 3], vec![4, 3], vec![4, 0], vec![2, 0]],
+            ],
+        };
+        if let GeometryType::GeometryCollection { geometries } =
+            &topology.objects["collection"].geometry
+        {
+            let merge = wrap_merge(&topology, &geometries)?;
+            assert_eq!(
+                merge,
+                FeatureGeometryType::MultiPolygon {
+                    coordinates: vec![vec![
+                        vec![
+                            vec![2., 0.],
+                            vec![0., 0.],
+                            vec![0., 3.],
+                            vec![2., 3.],
+                            vec![4., 3.],
+                            vec![4., 0.],
+                            vec![2., 0.]
+                        ],
+                        vec![
+                            vec![2., 2.],
+                            vec![1., 2.],
+                            vec![1., 1.],
+                            vec![2., 1.],
+                            vec![3., 1.],
+                            vec![3., 2.],
+                            vec![2., 2.]
+                        ]
+                    ]]
+                }
+            );
+        } else {
+            panic!("Topology must have a collection of geometries.")
+        }
+        Ok(())
+    }
+
+    //
+    // +-------+-------+            +-------+-------+
+    // |       |       |            |               |
+    // |   +---+---+   |    ==>     |               |
+    // |   |   |   |   |            |               |
+    // |   +---+---+   |            |               |
+    // |       |       |            |               |
+    // +-------+-------+            +-------+-------+
+    //
+    #[test]
+    fn test_merge_7() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![0, 1, 2, 3]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![-3, 4, -1, 5]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![6, -2]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::Polygon {
+                                    arcs: vec![vec![-7, -5]],
+                                },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![
+                vec![vec![2, 3], vec![2, 2]],
+                vec![vec![2, 2], vec![1, 2], vec![1, 1], vec![2, 1]],
+                vec![vec![2, 1], vec![2, 0]],
+                vec![vec![2, 0], vec![0, 0], vec![0, 3], vec![2, 3]],
+                vec![vec![2, 1], vec![3, 1], vec![3, 2], vec![2, 2]],
+                vec![vec![2, 3], vec![4, 3], vec![4, 0], vec![2, 0]],
+                vec![vec![2, 2], vec![2, 1]],
+            ],
+        };
+        if let GeometryType::GeometryCollection { geometries } =
+            &topology.objects["collection"].geometry
+        {
+            let merge = wrap_merge(&topology, &geometries)?;
+            assert_eq!(
+                merge,
+                FeatureGeometryType::MultiPolygon {
+                    coordinates: vec![vec![vec![
+                        vec![2., 0.],
+                        vec![0., 0.],
+                        vec![0., 3.],
+                        vec![2., 3.],
+                        vec![4., 3.],
+                        vec![4., 0.],
+                        vec![2., 0.]
+                    ]]]
+                }
+            );
+        } else {
+            panic!("Topology must have a collection of geometries.")
+        }
+        Ok(())
+    }
 }
