@@ -2,6 +2,7 @@ mod api;
 mod feature;
 mod geojson_structs;
 mod merge;
+mod mesh;
 mod reverse;
 mod stitch;
 mod topojson_structs;

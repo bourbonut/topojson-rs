@@ -1,0 +1,119 @@
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use pyo3::types::{PyAnyMethods, PyFunction};
+use pyo3::{Bound, PyResult};
+
+use crate::feature::Object;
+use crate::geojson_structs::FeatureGeometryType;
+use crate::stitch::stitch;
+use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
+
+pub fn wrap_mesh(
+    topology: &TopoJSON,
+    object: Option<&Geometry>,
+    filter: Option<&Bound<PyFunction>>,
+) -> PyResult<FeatureGeometryType> {
+    Object::call(topology, &MeshArcs::call(topology, object, filter))
+}
+
+struct GeometryByArcs<'a> {
+    i: i32,
+    geometry: Rc<&'a Geometry>,
+}
+
+#[derive(Default)]
+struct MeshArcs<'a> {
+    arcs: Vec<i32>,
+    geoms_by_arc: HashMap<usize, Vec<GeometryByArcs<'a>>>,
+    geom: Option<Rc<&'a Geometry>>,
+}
+
+impl<'a> MeshArcs<'a> {
+    fn call(
+        topology: &TopoJSON,
+        object: Option<&'a Geometry>,
+        filter: Option<&'a Bound<PyFunction>>,
+    ) -> Geometry {
+        let arcs = match object {
+            Some(object) => MeshArcs::default().extract(object, filter),
+            None => (0..topology.arcs.len()).map(|x| x as i32).collect(),
+        };
+        Geometry {
+            geometry: GeometryType::MultiLineString {
+                arcs: stitch(topology, arcs),
+            },
+            id: None,
+            properties: None,
+            bbox: None,
+        }
+    }
+
+    fn extract(mut self, object: &'a Geometry, filter: Option<&'a Bound<PyFunction>>) -> Vec<i32> {
+        self.geometry(object);
+
+        match filter {
+            Some(filter_func) => self.geoms_by_arc.values().for_each(|geoms| {
+                match filter_func.call1((
+                    geoms[0].geometry.as_ref(),
+                    geoms.last().unwrap().geometry.as_ref(),
+                )) {
+                    Ok(result) => {
+                        if result.extract::<bool>().unwrap_or(false) {
+                            self.arcs.push(geoms[0].i);
+                        }
+                    }
+                    Err(_) => (),
+                }
+            }),
+            None => self.geoms_by_arc.values().for_each(|geoms| {
+                self.arcs.push(geoms[0].i);
+            }),
+        };
+
+        self.arcs
+    }
+
+    fn extract_0(&mut self, i: i32) {
+        let j = if i < 0 { !i } else { i } as usize;
+        let geom = self.geom.clone().expect("Undefined 'geom' during runtime");
+        self.geoms_by_arc
+            .entry(j)
+            .and_modify(|vec| {
+                vec.push(GeometryByArcs {
+                    i,
+                    geometry: geom.clone(),
+                })
+            })
+            .or_insert(vec![GeometryByArcs {
+                i,
+                geometry: geom.clone(),
+            }]);
+    }
+
+    fn extract_1(&mut self, arcs: &[i32]) {
+        arcs.iter().for_each(|i| self.extract_0(*i));
+    }
+
+    fn extract_2(&mut self, arcs: &[Vec<i32>]) {
+        arcs.iter().for_each(|arcs| self.extract_1(arcs));
+    }
+
+    fn extract_3(&mut self, arcs: &[Vec<Vec<i32>>]) {
+        arcs.iter().for_each(|arcs| self.extract_2(arcs));
+    }
+
+    fn geometry(&mut self, o: &'a Geometry) {
+        self.geom = Some(Rc::new(o));
+        match &o.geometry {
+            GeometryType::GeometryCollection { geometries } => {
+                geometries.iter().for_each(|o| self.geometry(o))
+            }
+            GeometryType::LineString { arcs } => self.extract_1(arcs),
+            GeometryType::MultiLineString { arcs } => self.extract_2(arcs),
+            GeometryType::Polygon { arcs } => self.extract_2(arcs),
+            GeometryType::MultiPolygon { arcs } => self.extract_3(arcs),
+            _ => panic!("Invalid geometry type used during mesh operation"),
+        }
+    }
+}
