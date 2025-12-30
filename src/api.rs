@@ -1,3 +1,4 @@
+use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
 use crate::geojson_structs::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
@@ -42,4 +43,10 @@ pub fn mesh(
     let topology: TopoJSON = topology.extract()?;
     let object: Option<Geometry> = object.map(|o| o.extract()).transpose()?;
     wrap_mesh(&topology, object.as_ref(), filter)
+}
+
+#[pyfunction]
+pub fn bbox(topology: &Bound<'_, PyDict>) -> PyResult<[f64; 4]> {
+    let topology: TopoJSON = topology.extract()?;
+    wrap_bbox(&topology)
 }

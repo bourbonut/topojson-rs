@@ -1,4 +1,5 @@
 mod api;
+mod bbox;
 mod feature;
 mod geojson_structs;
 mod merge;
@@ -15,5 +16,6 @@ fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(api::feature, m)?)?;
     m.add_function(wrap_pyfunction!(api::merge, m)?)?;
     m.add_function(wrap_pyfunction!(api::mesh, m)?)?;
+    m.add_function(wrap_pyfunction!(api::bbox, m)?)?;
     Ok(())
 }
