@@ -117,3 +117,108 @@ impl<'a> MeshArcs<'a> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mesh_1() -> PyResult<()> {
+        let topology = TopoJSON {
+            arcs: Vec::new(),
+            bbox: Vec::new(),
+            objects: HashMap::new(),
+            transform: None,
+        };
+        assert_eq!(
+            wrap_mesh(&topology, None, None)?,
+            FeatureGeometryType::MultiLineString {
+                coordinates: Vec::new()
+            }
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_mesh_2() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::LineString { arcs: vec![0] },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::LineString { arcs: vec![1] },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![vec![vec![1, 0], vec![2, 0]], vec![vec![0, 0], vec![1, 0]]],
+        };
+        assert_eq!(
+            wrap_mesh(&topology, None, None)?,
+            FeatureGeometryType::MultiLineString {
+                coordinates: vec![vec![vec![0., 0.], vec![1., 0.], vec![2., 0.]]]
+            }
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_mesh_3() -> PyResult<()> {
+        let topology = TopoJSON {
+            bbox: Vec::new(),
+            transform: None,
+            objects: HashMap::from_iter([(
+                "collection".to_string(),
+                Geometry {
+                    geometry: GeometryType::GeometryCollection {
+                        geometries: vec![
+                            Geometry {
+                                geometry: GeometryType::LineString { arcs: vec![0] },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                            Geometry {
+                                geometry: GeometryType::LineString { arcs: vec![1] },
+                                id: None,
+                                properties: None,
+                                bbox: None,
+                            },
+                        ],
+                    },
+                    id: None,
+                    properties: None,
+                    bbox: None,
+                },
+            )]),
+            arcs: vec![vec![vec![2, 0], vec![3, 0]], vec![vec![0, 0], vec![1, 0]]],
+        };
+        assert_eq!(
+            wrap_mesh(&topology, None, None)?,
+            FeatureGeometryType::MultiLineString {
+                coordinates: vec![
+                    vec![vec![2., 0.], vec![3., 0.]],
+                    vec![vec![0., 0.], vec![1., 0.]]
+                ]
+            }
+        );
+        Ok(())
+    }
+}

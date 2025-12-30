@@ -170,45 +170,45 @@ impl<'py> IntoPyObject<'py> for Geometry {
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let dict = PyDict::new(py);
         if let Some(id) = &self.id {
-            dict.set_item("id", id);
+            dict.set_item("id", id)?;
         }
         if let Some(properties) = &self.properties {
             let properties_dict = PyDict::new(py);
-            properties_dict.set_item("name", properties.name.clone());
-            dict.set_item("properties", properties_dict);
+            properties_dict.set_item("name", properties.name.clone())?;
+            dict.set_item("properties", properties_dict)?;
         }
         if let Some(bbox) = &self.bbox {
-            dict.set_item("bbox", bbox);
+            dict.set_item("bbox", bbox)?;
         }
 
         match self.geometry {
             GeometryType::GeometryCollection { geometries } => {
-                dict.set_item("type", "GeometryCollection");
-                dict.set_item("arcs", geometries);
+                dict.set_item("type", "GeometryCollection")?;
+                dict.set_item("arcs", geometries)?;
             }
             GeometryType::Point { coordinates } => {
-                dict.set_item("type", "Point");
-                dict.set_item("coordinates", coordinates);
+                dict.set_item("type", "Point")?;
+                dict.set_item("coordinates", coordinates)?;
             }
             GeometryType::MultiPoint { coordinates } => {
-                dict.set_item("type", "MultiPoint");
-                dict.set_item("coordinates", coordinates);
+                dict.set_item("type", "MultiPoint")?;
+                dict.set_item("coordinates", coordinates)?;
             }
             GeometryType::LineString { arcs } => {
-                dict.set_item("type", "LineString");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "LineString")?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiLineString { arcs } => {
-                dict.set_item("type", "MultiLineString");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "MultiLineString")?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::Polygon { arcs } => {
-                dict.set_item("type", "Polygon");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "Polygon")?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiPolygon { arcs } => {
-                dict.set_item("type", "MultiPolygon");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "MultiPolygon")?;
+                dict.set_item("arcs", arcs)?;
             }
         }
         Ok(dict)
@@ -223,45 +223,45 @@ impl<'py> IntoPyObject<'py> for &Geometry {
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let dict = PyDict::new(py);
         if let Some(id) = &self.id {
-            dict.set_item("id", id);
+            dict.set_item("id", id)?;
         }
         if let Some(properties) = &self.properties {
             let properties_dict = PyDict::new(py);
-            properties_dict.set_item("name", properties.name.clone());
-            dict.set_item("properties", properties_dict);
+            properties_dict.set_item("name", properties.name.clone())?;
+            dict.set_item("properties", properties_dict)?;
         }
         if let Some(bbox) = &self.bbox {
-            dict.set_item("bbox", bbox);
+            dict.set_item("bbox", bbox)?;
         }
 
         match &self.geometry {
             GeometryType::GeometryCollection { geometries } => {
-                dict.set_item("type", "GeometryCollection");
-                dict.set_item("arcs", geometries);
+                dict.set_item("type", "GeometryCollection")?;
+                dict.set_item("arcs", geometries)?;
             }
             GeometryType::Point { coordinates } => {
-                dict.set_item("type", "Point");
-                dict.set_item("coordinates", coordinates);
+                dict.set_item("type", "Point")?;
+                dict.set_item("coordinates", coordinates)?;
             }
             GeometryType::MultiPoint { coordinates } => {
-                dict.set_item("type", "MultiPoint");
-                dict.set_item("coordinates", coordinates);
+                dict.set_item("type", "MultiPoint")?;
+                dict.set_item("coordinates", coordinates)?;
             }
             GeometryType::LineString { arcs } => {
-                dict.set_item("type", "LineString");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "LineString")?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiLineString { arcs } => {
-                dict.set_item("type", "MultiLineString");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "MultiLineString")?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::Polygon { arcs } => {
-                dict.set_item("type", "Polygon");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "Polygon")?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiPolygon { arcs } => {
-                dict.set_item("type", "MultiPolygon");
-                dict.set_item("arcs", arcs);
+                dict.set_item("type", "MultiPolygon")?;
+                dict.set_item("arcs", arcs)?;
             }
         }
         Ok(dict)
