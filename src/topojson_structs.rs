@@ -4,6 +4,7 @@ use pyo3::{exceptions::PyKeyError, prelude::*, types::PyDict};
 
 #[derive(Debug)]
 pub struct TopoJSON {
+    #[allow(unused)]
     pub bbox: Vec<f64>,
     pub transform: Option<Transform>,
     pub objects: HashMap<String, Geometry>,
@@ -63,7 +64,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum GeometryType {
     GeometryCollection { geometries: Vec<Geometry> },
     Point { coordinates: Vec<f64> },
@@ -74,7 +75,7 @@ pub enum GeometryType {
     MultiPolygon { arcs: Vec<Vec<Vec<i32>>> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Geometry {
     pub geometry: GeometryType,
     pub id: Option<String>,

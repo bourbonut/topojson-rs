@@ -9,7 +9,7 @@ pub fn wrap_bbox(topology: &TopoJSON) -> PyResult<[f64; 4]> {
     Ok(Bbox::call(topology)?)
 }
 
-struct Bbox {
+pub struct Bbox {
     transform: Box<dyn FnMut(&[f64], usize) -> Vec<f64>>,
     x0: f64,
     x1: f64,
@@ -30,7 +30,7 @@ impl Bbox {
         })
     }
 
-    fn call(topology: &TopoJSON) -> PyResult<[f64; 4]> {
+    pub fn call(topology: &TopoJSON) -> PyResult<[f64; 4]> {
         let mut bbox = Bbox::new(topology)?;
         topology.arcs.iter().for_each(|arc_vec| {
             for arc in arc_vec.iter() {
