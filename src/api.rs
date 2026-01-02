@@ -3,6 +3,7 @@ use crate::feature::wrap_feature;
 use crate::geojson_structs::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
 use crate::mesh::wrap_mesh;
+use crate::neighbors::wrap_neighbors;
 use crate::topojson_structs::{Geometry, TopoJSON};
 use pyo3::{
     prelude::*,
@@ -49,4 +50,10 @@ pub fn mesh(
 pub fn bbox(topology: &Bound<'_, PyDict>) -> PyResult<[f64; 4]> {
     let topology: TopoJSON = topology.extract()?;
     wrap_bbox(&topology)
+}
+
+#[pyfunction]
+pub fn neighbors(objects: &Bound<'_, PyList>) -> PyResult<Vec<Vec<i32>>> {
+    let objects: Vec<Geometry> = objects.extract()?;
+    Ok(wrap_neighbors(&objects))
 }
