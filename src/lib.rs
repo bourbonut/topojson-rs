@@ -7,6 +7,7 @@ mod merge;
 mod mesh;
 mod neighbors;
 // mod quantize;
+mod parser;
 mod reverse;
 mod stitch;
 mod topojson_structs;
