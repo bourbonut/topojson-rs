@@ -64,8 +64,8 @@ impl Stitch {
     }
 
     fn replace(&mut self, fragment: Rc<RefCell<Fragment>>) {
-        let start = fragment.borrow().start.clone();
-        let end = fragment.borrow().end.clone();
+        let start = fragment.borrow().start;
+        let end = fragment.borrow().end;
         self.fragment_by_start
             .entry(start)
             .and_modify(|v| *v = fragment.clone())
@@ -76,16 +76,8 @@ impl Stitch {
             .or_insert(fragment.clone());
     }
 
-    fn replace_from(
-        &mut self,
-        fg: Rc<RefCell<Fragment>>,
-        f: Rc<RefCell<Fragment>>,
-        g: Rc<RefCell<Fragment>>,
-    ) {
+    fn replace_from(&mut self, fg: Rc<RefCell<Fragment>>, start: [i32; 2], end: [i32; 2]) {
         {
-            let start = f.borrow().start.clone();
-            let end = g.borrow().end.clone();
-
             let mut fg_borrow = fg.borrow_mut();
             fg_borrow.start = start;
             fg_borrow.end = end;
@@ -132,16 +124,18 @@ impl Stitch {
                 if let Some(g) = self.fragment_by_start.get(&end).cloned() {
                     self.fragment_by_start.remove(&g.borrow().start);
 
+                    let start = f.borrow().start;
+                    let end = g.borrow().end;
                     let fg = if f == g {
                         f.clone()
                     } else {
                         f.add_fragment(&g)
                     };
-                    self.replace_from(fg, f.clone(), g.clone());
+                    self.replace_from(fg, start, end);
                 } else {
                     self.replace(f.clone());
                 }
-            } else if let Some(f) = self.fragment_by_start.get(&end[..]).cloned() {
+            } else if let Some(f) = self.fragment_by_start.get(&end).cloned() {
                 self.fragment_by_start.remove(&f.borrow().start);
                 {
                     f.borrow_mut().unshift(*i);
@@ -151,12 +145,14 @@ impl Stitch {
                 if let Some(g) = self.fragment_by_end.get(&start).cloned() {
                     self.fragment_by_end.remove(&g.borrow().end);
 
-                    let fg = if f == g {
+                    let start = g.borrow().start;
+                    let end = f.borrow().end;
+                    let gf = if g == f {
                         f.clone()
                     } else {
                         g.add_fragment(&f)
                     };
-                    self.replace_from(fg, f.clone(), g.clone());
+                    self.replace_from(gf, start, end);
                 } else {
                     self.replace(f.clone());
                 }

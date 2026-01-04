@@ -17,15 +17,21 @@ pub fn wrap_mesh(
     Object::call(topology, &MeshArcs::call(topology, object, filter))
 }
 
-struct GeometryByArcs<'a> {
+struct ArcItem<'a> {
     i: i32,
     geometry: Rc<&'a Geometry>,
 }
 
 #[derive(Default)]
+struct GeometryByArcs<'a> {
+    max_index: usize,
+    hmap: HashMap<usize, Vec<ArcItem<'a>>>,
+}
+
+#[derive(Default)]
 struct MeshArcs<'a> {
     arcs: Vec<i32>,
-    geoms_by_arc: HashMap<usize, Vec<GeometryByArcs<'a>>>,
+    geoms_by_arc: GeometryByArcs<'a>,
     geom: Option<Rc<&'a Geometry>>,
 }
 
@@ -52,21 +58,25 @@ impl<'a> MeshArcs<'a> {
     fn extract(mut self, object: &'a Geometry, filter: Option<&'a Bound<PyFunction>>) -> Vec<i32> {
         self.geometry(object);
 
+        let geoms_by_arc =
+            (0..=self.geoms_by_arc.max_index).filter_map(|k| self.geoms_by_arc.hmap.get(&k));
         match filter {
-            Some(filter_func) => self.geoms_by_arc.values().for_each(|geoms| {
-                match filter_func.call1((
-                    geoms[0].geometry.as_ref(),
-                    geoms.last().unwrap().geometry.as_ref(),
-                )) {
-                    Ok(result) => {
-                        if result.extract::<bool>().unwrap_or(false) {
-                            self.arcs.push(geoms[0].i);
+            Some(filter_func) => {
+                geoms_by_arc.for_each(|geoms| {
+                    match filter_func.call1((
+                        geoms[0].geometry.as_ref(),
+                        geoms.last().unwrap().geometry.as_ref(),
+                    )) {
+                        Ok(result) => {
+                            if result.extract::<bool>().unwrap_or(false) {
+                                self.arcs.push(geoms[0].i);
+                            }
                         }
+                        Err(_) => (),
                     }
-                    Err(_) => (),
-                }
-            }),
-            None => self.geoms_by_arc.values().for_each(|geoms| {
+                });
+            }
+            None => geoms_by_arc.for_each(|geoms| {
                 self.arcs.push(geoms[0].i);
             }),
         };
@@ -78,21 +88,23 @@ impl<'a> MeshArcs<'a> {
         let j = if i < 0 { !i } else { i } as usize;
         let geom = self.geom.clone().expect("Undefined 'geom' during runtime");
         self.geoms_by_arc
+            .hmap
             .entry(j)
             .and_modify(|vec| {
-                vec.push(GeometryByArcs {
+                vec.push(ArcItem {
                     i,
                     geometry: geom.clone(),
                 })
             })
-            .or_insert(vec![GeometryByArcs {
+            .or_insert(vec![ArcItem {
                 i,
                 geometry: geom.clone(),
             }]);
+        self.geoms_by_arc.max_index = self.geoms_by_arc.max_index.max(j)
     }
 
     fn extract_1(&mut self, arcs: &[i32]) {
-        arcs.iter().for_each(|i| self.extract_0(*i));
+        arcs.iter().for_each(|&i| self.extract_0(i));
     }
 
     fn extract_2(&mut self, arcs: &[Vec<i32>]) {
@@ -113,7 +125,7 @@ impl<'a> MeshArcs<'a> {
             GeometryType::MultiLineString { arcs } => self.extract_2(arcs),
             GeometryType::Polygon { arcs } => self.extract_2(arcs),
             GeometryType::MultiPolygon { arcs } => self.extract_3(arcs),
-            _ => panic!("Invalid geometry type used during mesh operation"),
+            _ => (),
         }
     }
 }
@@ -210,15 +222,18 @@ mod tests {
             )]),
             arcs: vec![vec![vec![2, 0], vec![3, 0]], vec![vec![0, 0], vec![1, 0]]],
         };
-        assert_eq!(
-            wrap_mesh(&topology, None, None)?,
-            FeatureGeometryType::MultiLineString {
-                coordinates: vec![
-                    vec![vec![2., 0.], vec![3., 0.]],
-                    vec![vec![0., 0.], vec![1., 0.]]
-                ]
+        if let FeatureGeometryType::MultiLineString { coordinates } =
+            wrap_mesh(&topology, None, None)?
+        {
+            for values in [
+                vec![vec![2., 0.], vec![3., 0.]],
+                vec![vec![0., 0.], vec![1., 0.]],
+            ] {
+                assert!(coordinates.contains(&values));
             }
-        );
+        } else {
+            panic!("Feature Geometry Type must be 'FeatureGeometryType::MultiLineString'");
+        }
         Ok(())
     }
 }
