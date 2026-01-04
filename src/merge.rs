@@ -19,7 +19,8 @@ fn planar_ring_area(ring: &Vec<Vec<f64>>) -> f64 {
     let b = ring.last().unwrap();
     let mut area: f64 = 0.;
     while i < n {
-        let (a, b) = (b, &ring[i]);
+        let a = b;
+        let b = &ring[i];
         area += a[0] * b[1] - a[1] * b[0];
         i += 1;
     }
