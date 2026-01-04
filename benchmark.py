@@ -22,6 +22,12 @@ def load_states():
     return topology
 
 
+def load_counties():
+    with open("./counties-10m.json") as file:
+        topology = json.load(file)
+    return topology
+
+
 def benchmark(name, py_func, rs_func):
     start = perf_counter()
     expected = py_func()
@@ -35,7 +41,7 @@ def benchmark(name, py_func, rs_func):
 
     is_same = actual == expected
     print(
-        f"{name.title():>10}: ratio: {t1 / t2:.3f}, python: {t1:.3f} ms, rust: {t2:.3f} ms ({is_same})"
+        f"{name.title():>10}: ratio: {t1 / t2:.3f}, python: {t1:>6.3f} ms, rust: {t2:>6.3f} ms ({is_same})"
     )
 
 
@@ -55,8 +61,8 @@ benchmark(
     lambda: topojson.mesh(topology, land, filter=None),
 )
 
-topology = load_states()
-objects = list(topology["objects"].values())
+topology = load_counties()
+objects = topology["objects"]["counties"]["geometries"]
 benchmark(
     "merge",
     lambda: Merge()(topology, objects),
