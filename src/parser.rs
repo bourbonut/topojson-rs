@@ -10,7 +10,6 @@ pub async fn request(filepath: &str) -> Result<String, String> {
     let url = format!("{PREFIX_URL}/{filepath}")
         .parse::<reqwest::Url>()
         .map_err(|e| format!("Cannot parse the URL: {}", e.to_string()))?;
-    println!("url: {:?}", url.to_string());
     Ok(reqwest::get(url)
         .await
         .map_err(|e| format!("Cannot send a request: {}", e.to_string()))?
