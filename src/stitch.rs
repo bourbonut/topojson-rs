@@ -1,8 +1,5 @@
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet, hash_map::Values},
-    rc::Rc,
-};
+use indexmap::{IndexMap, map::Values};
+use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use crate::topojson_structs::TopoJSON;
 
@@ -48,8 +45,8 @@ impl AddFragments for Rc<RefCell<Fragment>> {
 #[derive(Default)]
 struct Stitch {
     stitched_arcs: HashSet<usize>,
-    fragment_by_start: HashMap<[i32; 2], Rc<RefCell<Fragment>>>,
-    fragment_by_end: HashMap<[i32; 2], Rc<RefCell<Fragment>>>,
+    fragment_by_start: IndexMap<[i32; 2], Rc<RefCell<Fragment>>>,
+    fragment_by_end: IndexMap<[i32; 2], Rc<RefCell<Fragment>>>,
     fragments: Vec<Vec<i32>>,
 }
 
@@ -115,14 +112,14 @@ impl Stitch {
             let (start, end) = self.ends(&topology, i);
 
             if let Some(f) = self.fragment_by_end.get(&start).cloned() {
-                self.fragment_by_end.remove(&f.borrow().end);
+                self.fragment_by_end.shift_remove(&f.borrow().end);
                 {
                     f.borrow_mut().push(*i);
                     f.borrow_mut().end = end.clone();
                 }
 
                 if let Some(g) = self.fragment_by_start.get(&end).cloned() {
-                    self.fragment_by_start.remove(&g.borrow().start);
+                    self.fragment_by_start.shift_remove(&g.borrow().start);
 
                     let start = f.borrow().start;
                     let end = g.borrow().end;
@@ -136,14 +133,14 @@ impl Stitch {
                     self.replace(f.clone());
                 }
             } else if let Some(f) = self.fragment_by_start.get(&end).cloned() {
-                self.fragment_by_start.remove(&f.borrow().start);
+                self.fragment_by_start.shift_remove(&f.borrow().start);
                 {
                     f.borrow_mut().unshift(*i);
                     f.borrow_mut().start = start.clone();
                 }
 
                 if let Some(g) = self.fragment_by_end.get(&start).cloned() {
-                    self.fragment_by_end.remove(&g.borrow().end);
+                    self.fragment_by_end.shift_remove(&g.borrow().end);
 
                     let start = g.borrow().start;
                     let end = f.borrow().end;
@@ -189,10 +186,10 @@ impl Stitch {
     fn flush(&mut self) {
         let mut process_fragments =
             |fragments: Values<[i32; 2], Rc<RefCell<Fragment>>>,
-             other_map: &mut HashMap<[i32; 2], Rc<RefCell<Fragment>>>| {
+             other_map: &mut IndexMap<[i32; 2], Rc<RefCell<Fragment>>>| {
                 fragments.for_each(|f| {
                     let start = f.borrow().start;
-                    other_map.remove(&start);
+                    other_map.shift_remove(&start);
                     f.borrow().arcs.iter().for_each(|&i| {
                         self.stitched_arcs.insert(arc_index(i));
                     });
