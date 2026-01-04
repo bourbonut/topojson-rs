@@ -41,6 +41,32 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
     }
 }
 
+impl<'py> IntoPyObject<'py> for TopoJSON {
+    type Target = PyDict;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = PyDict::new(py);
+        if !self.bbox.is_empty() {
+            dict.set_item("bbox", self.bbox)?;
+        }
+        if let Some(transform) = self.transform {
+            let transform_dict = PyDict::new(py);
+            transform_dict.set_item("scale", transform.scale)?;
+            transform_dict.set_item("translate", transform.translate)?;
+            dict.set_item("transform", transform_dict)?;
+        }
+        if !self.arcs.is_empty() {
+            dict.set_item("arcs", self.arcs)?;
+        }
+        if !self.objects.is_empty() {
+            dict.set_item("objects", self.objects)?;
+        }
+        Ok(dict)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Transform {
     pub scale: Vec<f64>,

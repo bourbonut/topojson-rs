@@ -8,7 +8,6 @@ mod mesh;
 mod neighbors;
 #[cfg(test)]
 mod parser;
-#[allow(unused)]
 mod quantize;
 mod reverse;
 mod stitch;
@@ -25,5 +24,6 @@ fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(api::mesh, m)?)?;
     m.add_function(wrap_pyfunction!(api::bbox, m)?)?;
     m.add_function(wrap_pyfunction!(api::neighbors, m)?)?;
+    m.add_function(wrap_pyfunction!(api::quantize, m)?)?;
     Ok(())
 }

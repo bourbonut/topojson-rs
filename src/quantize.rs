@@ -5,7 +5,7 @@ use crate::untransform::untransform;
 use pyo3::PyResult;
 use pyo3::exceptions::PyRuntimeError;
 
-fn wrap_quantize(topology: &TopoJSON, transform: &f64) -> PyResult<TopoJSON> {
+pub fn wrap_quantize(topology: &TopoJSON, transform: &f64) -> PyResult<TopoJSON> {
     Ok(Quantize::new(topology, transform)?.call(topology)?)
 }
 
