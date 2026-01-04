@@ -6,14 +6,15 @@ mod geojson_structs;
 mod merge;
 mod mesh;
 mod neighbors;
-// mod quantize;
 #[cfg(test)]
 mod parser;
+#[allow(unused)]
+mod quantize;
 mod reverse;
 mod stitch;
 mod topojson_structs;
 mod transform;
-// mod untransform;
+mod untransform;
 
 use pyo3::prelude::*;
 

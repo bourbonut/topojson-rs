@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use pyo3::{exceptions::PyKeyError, prelude::*, types::PyDict};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TopoJSON {
     #[allow(unused)]
     pub bbox: Vec<f64>,
@@ -41,7 +41,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Transform {
     pub scale: Vec<f64>,
     pub translate: Vec<f64>,
@@ -64,7 +64,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum GeometryType {
     GeometryCollection { geometries: Vec<Geometry> },
     Point { coordinates: Vec<f64> },
@@ -75,7 +75,7 @@ pub enum GeometryType {
     MultiPolygon { arcs: Vec<Vec<Vec<i32>>> },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Geometry {
     pub geometry: GeometryType,
     pub id: Option<String>,

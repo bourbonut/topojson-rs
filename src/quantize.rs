@@ -41,7 +41,7 @@ impl Quantize {
         };
 
         let n = transform.floor();
-        if n < 2. {
+        if n < 2. || n.is_nan() {
             return Err(PyRuntimeError::new_err("n must be larger than 2"));
         }
         let r#box = if topology.bbox.is_empty() {
@@ -135,5 +135,131 @@ impl Quantize {
             output.push(vec![0, 0]);
         }
         output
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use pyo3::Python;
+
+    use crate::parser::{json_parse, request};
+
+    use super::*;
+
+    async fn quantize(
+        actual_filetest: &str,
+        transform: &f64,
+        expected_filetest: &str,
+    ) -> Result<(), String> {
+        let topology = TopoJSON::try_from(json_parse(request(actual_filetest).await?)?)?;
+
+        let expected_topology = TopoJSON::try_from(json_parse(request(expected_filetest).await?)?)?;
+        assert_eq!(
+            wrap_quantize(&topology, transform)
+                .map_err(|e| format!("Error during quantize operation: {}", e.to_string()))?,
+            expected_topology
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_quantize_1() -> Result<(), String> {
+        quantize(
+            "test/topojson/polygon.json",
+            &1e4,
+            "test/topojson/polygon-q1e4.json",
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_quantize_2() -> Result<(), String> {
+        quantize(
+            "test/topojson/polygon.json",
+            &1e5,
+            "test/topojson/polygon-q1e5.json",
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_quantize_3() -> Result<(), String> {
+        quantize(
+            "test/topojson/empty.json",
+            &1e4,
+            "test/topojson/empty-q1e4.json",
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_quantize_4() -> Result<(), String> {
+        quantize(
+            "test/topojson/properties.json",
+            &1e4,
+            "test/topojson/properties-q1e4.json",
+        )
+        .await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_quantize_5() -> Result<(), String> {
+        let mut before =
+            TopoJSON::try_from(json_parse(request("test/topojson/polygon.json").await?)?)?;
+        before.bbox.clear();
+        let after = wrap_quantize(&before, &1e4)
+            .map_err(|e| format!("Error during quantize operation: {}", e.to_string()))?;
+
+        let expected_topology = TopoJSON::try_from(json_parse(
+            request("test/topojson/polygon-q1e4.json").await?,
+        )?)?;
+        assert_eq!(after, expected_topology);
+        assert_eq!(after.bbox, vec![0., 0., 10., 10.]);
+        assert_eq!(before.bbox, Vec::<f64>::new());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_quantize_6() -> Result<(), String> {
+        Python::initialize();
+        let topology = TopoJSON::try_from(json_parse(
+            request("test/topojson/polygon-q1e4.json").await?,
+        )?)?;
+        if let Err(py_runtime_error) = wrap_quantize(&topology, &1e4) {
+            assert_eq!(
+                py_runtime_error.to_string(),
+                String::from("RuntimeError: Already quantized")
+            );
+            Ok(())
+        } else {
+            Err(String::from(
+                "Quantized must return an error: 'Already quantized'",
+            ))
+        }
+    }
+
+    #[tokio::test]
+    async fn test_quantize_7() -> Result<(), String> {
+        Python::initialize();
+        let topology =
+            TopoJSON::try_from(json_parse(request("test/topojson/polygon.json").await?)?)?;
+        for transform in [0., 1.5, f64::NAN, -2.] {
+            if let Err(py_runtime_error) = wrap_quantize(&topology, &transform) {
+                assert_eq!(
+                    py_runtime_error.to_string(),
+                    String::from("RuntimeError: n must be larger than 2")
+                );
+            } else {
+                return Err(format!(
+                    "Quantized must return an error: 'n must be larger than 2' for transform value '{:?}'",
+                    transform,
+                ));
+            }
+        }
+        Ok(())
     }
 }

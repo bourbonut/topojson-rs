@@ -44,6 +44,7 @@ impl Untransformer {
         output[0] = x1 - self.x0;
         output[1] = y1 - self.y0;
         self.x0 = x1;
+        self.y0 = y1;
         output.iter().map(|&x| x as i32).collect()
     }
 }
