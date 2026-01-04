@@ -37,18 +37,12 @@ impl Neighbors {
             }
         };
 
-        println!("self.indexes_by_arc: {:?}", self.indexes_by_arc);
         for indexes in self.indexes_by_arc.values() {
             let m = indexes.len();
-            println!("m: {:?}", m);
             for j in 0..m {
-                println!("j: {:?}", j);
                 for k in (j + 1)..m {
-                    println!("k: {:?}", k);
                     let ij = indexes[j];
                     let ik = indexes[k];
-                    println!("ij: {:?}", ij);
-                    println!("ik: {:?}", ik);
                     splice_neighbors(ij, ik);
                     splice_neighbors(ik, ij);
                 }

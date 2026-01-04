@@ -8,12 +8,11 @@ use crate::quantize::wrap_quantize;
 use crate::topojson_structs::{Geometry, TopoJSON};
 use pyo3::{
     prelude::*,
-    types::{PyAny, PyDict, PyFunction, PyList, PyString},
+    types::{PyAny, PyDict, PyFunction, PyString},
 };
 
 #[pyfunction]
-pub fn feature(topology: &Bound<'_, PyDict>, o: &Bound<'_, PyAny>) -> PyResult<Feature> {
-    let topology: TopoJSON = topology.extract()?;
+pub fn feature(topology: TopoJSON, o: &Bound<'_, PyAny>) -> PyResult<Feature> {
     let feature = if o.is_instance_of::<PyString>() {
         let key: String = o.extract::<String>()?;
         let o = &topology.objects[&key];
@@ -26,41 +25,31 @@ pub fn feature(topology: &Bound<'_, PyDict>, o: &Bound<'_, PyAny>) -> PyResult<F
 }
 
 #[pyfunction]
-pub fn merge(
-    topology: &Bound<'_, PyDict>,
-    objects: &Bound<'_, PyList>,
-) -> PyResult<FeatureGeometryType> {
-    let topology: TopoJSON = topology.extract()?;
-    let objects: Vec<Geometry> = objects.extract()?;
-    let feature_geometry = wrap_merge(&topology, &objects)?;
-    Ok(feature_geometry)
+pub fn merge(topology: TopoJSON, objects: Vec<Geometry>) -> PyResult<FeatureGeometryType> {
+    Ok(wrap_merge(&topology, &objects)?)
 }
 
 #[pyfunction]
 pub fn mesh(
-    topology: &Bound<'_, PyDict>,
+    topology: TopoJSON,
     object: Option<&Bound<'_, PyDict>>,
     filter: Option<&Bound<'_, PyFunction>>,
 ) -> PyResult<FeatureGeometryType> {
-    let topology: TopoJSON = topology.extract()?;
     let object: Option<Geometry> = object.map(|o| o.extract()).transpose()?;
     wrap_mesh(&topology, object.as_ref(), filter)
 }
 
 #[pyfunction]
-pub fn bbox(topology: &Bound<'_, PyDict>) -> PyResult<[f64; 4]> {
-    let topology: TopoJSON = topology.extract()?;
+pub fn bbox(topology: TopoJSON) -> PyResult<[f64; 4]> {
     wrap_bbox(&topology)
 }
 
 #[pyfunction]
-pub fn neighbors(objects: &Bound<'_, PyList>) -> PyResult<Vec<Vec<i32>>> {
-    let objects: Vec<Geometry> = objects.extract()?;
+pub fn neighbors(objects: Vec<Geometry>) -> PyResult<Vec<Vec<i32>>> {
     Ok(wrap_neighbors(&objects))
 }
 
 #[pyfunction]
-pub fn quantize(topology: &Bound<'_, PyDict>, transform: f64) -> PyResult<TopoJSON> {
-    let topology: TopoJSON = topology.extract()?;
+pub fn quantize(topology: TopoJSON, transform: f64) -> PyResult<TopoJSON> {
     Ok(wrap_quantize(&topology, &transform)?)
 }
