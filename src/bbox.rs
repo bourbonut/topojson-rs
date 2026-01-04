@@ -33,13 +33,13 @@ impl Bbox {
     pub fn call(topology: &TopoJSON) -> PyResult<[f64; 4]> {
         let mut bbox = Bbox::new(topology)?;
         topology.arcs.iter().for_each(|arc_vec| {
-            for arc in arc_vec.iter() {
-                let p = (bbox.transform)(&arc.iter().map(|&x| x as f64).collect::<Vec<f64>>(), 0);
+            for (i, arc) in arc_vec.iter().enumerate() {
+                let p = (bbox.transform)(&arc.iter().map(|&x| x as f64).collect::<Vec<f64>>(), i);
                 if p[0] < bbox.x0 {
                     bbox.x0 = p[0];
                 }
                 if p[0] > bbox.x1 {
-                    bbox.x0 = p[0];
+                    bbox.x1 = p[0];
                 }
                 if p[1] < bbox.y0 {
                     bbox.y0 = p[1];
@@ -67,7 +67,7 @@ impl Bbox {
             GeometryType::MultiPoint { coordinates } => {
                 coordinates.iter().for_each(|p| self.point(p))
             }
-            _ => panic!("Invalid geometry type used during bbox operation"),
+            _ => (),
         }
     }
 
@@ -77,7 +77,7 @@ impl Bbox {
             self.x0 = p[0];
         }
         if p[0] > self.x1 {
-            self.x0 = p[0];
+            self.x1 = p[0];
         }
         if p[1] < self.y0 {
             self.y0 = p[1];
@@ -90,6 +90,7 @@ impl Bbox {
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::{json_parse, request};
     use std::collections::HashMap;
 
     use super::*;
@@ -106,6 +107,54 @@ mod tests {
         assert_eq!(
             wrap_bbox(&topology)?,
             [f64::INFINITY, f64::INFINITY, -f64::INFINITY, -f64::INFINITY]
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_bbox_2() -> Result<(), String> {
+        let topology = TopoJSON::try_from(json_parse(
+            request("test/topojson/polygon-q1e4.json").await?,
+        )?)?;
+        assert_eq!(
+            wrap_bbox(&topology)
+                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
+            [0., 0., 10., 10.]
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_bbox_3() -> Result<(), String> {
+        let topology =
+            TopoJSON::try_from(json_parse(request("test/topojson/polygon.json").await?)?)?;
+        assert_eq!(
+            wrap_bbox(&topology)
+                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
+            [0., 0., 10., 10.]
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_bbox_4() -> Result<(), String> {
+        let topology = TopoJSON::try_from(json_parse(request("test/topojson/point.json").await?)?)?;
+        assert_eq!(
+            wrap_bbox(&topology)
+                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
+            [0., 0., 10., 10.]
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_bbox_5() -> Result<(), String> {
+        let topology =
+            TopoJSON::try_from(json_parse(request("test/topojson/points.json").await?)?)?;
+        assert_eq!(
+            wrap_bbox(&topology)
+                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
+            [0., 0., 10., 10.]
         );
         Ok(())
     }

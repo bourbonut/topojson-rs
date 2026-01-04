@@ -19,6 +19,11 @@ pub async fn request(filepath: &str) -> Result<String, String> {
         .map_err(|e| format!("Cannot get the text from the request: {}", e.to_string()))?)
 }
 
+pub fn json_parse(json_content: String) -> Result<JsonValue, String> {
+    json::parse(&json_content)
+        .map_err(|e| format!("Cannot parse the content through 'json': {}", e.to_string()))
+}
+
 fn array_from_item<T, F>(item: &JsonValue, f: F) -> Option<Vec<T>>
 where
     F: FnMut(&JsonValue) -> Option<T>,
@@ -208,10 +213,7 @@ impl TryFrom<JsonValue> for TopoJSON {
 #[tokio::test]
 async fn test_parsing() -> Result<(), String> {
     let json_content = request("test/topojson/polygon-q1e4.json").await?;
-    let topology = TopoJSON::try_from(
-        json::parse(&json_content)
-            .map_err(|e| format!("Cannot parse the content through 'json': {}", e.to_string()))?,
-    )?;
+    let topology = TopoJSON::try_from(json_parse(json_content)?)?;
     assert_eq!(topology.bbox, vec![0., 0., 10., 10.]);
     if let Some(transform) = topology.transform {
         assert_eq!(transform.scale, vec![0.001000100010001, 0.001000100010001]);
