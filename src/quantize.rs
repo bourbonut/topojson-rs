@@ -6,7 +6,7 @@ use pyo3::PyResult;
 use pyo3::exceptions::PyRuntimeError;
 
 pub fn wrap_quantize(topology: &TopoJSON, transform: &f64) -> PyResult<TopoJSON> {
-    Ok(Quantize::new(topology, transform)?.call(topology)?)
+    Quantize::call(topology, transform)
 }
 
 struct Quantize {
@@ -16,7 +16,11 @@ struct Quantize {
 }
 
 impl Quantize {
-    fn call(mut self, topology: &TopoJSON) -> PyResult<TopoJSON> {
+    fn call(topology: &TopoJSON, transform: &f64) -> PyResult<TopoJSON> {
+        Quantize::new(topology, transform)?.quantize(topology)
+    }
+
+    fn quantize(mut self, topology: &TopoJSON) -> PyResult<TopoJSON> {
         let objects = topology
             .objects
             .iter()

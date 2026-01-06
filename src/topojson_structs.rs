@@ -48,6 +48,7 @@ impl<'py> IntoPyObject<'py> for TopoJSON {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let dict = PyDict::new(py);
+        dict.set_item("type", "Topology")?;
         if !self.bbox.is_empty() {
             dict.set_item("bbox", self.bbox)?;
         }
@@ -211,7 +212,7 @@ impl<'py> IntoPyObject<'py> for Geometry {
         match self.geometry {
             GeometryType::GeometryCollection { geometries } => {
                 dict.set_item("type", "GeometryCollection")?;
-                dict.set_item("arcs", geometries)?;
+                dict.set_item("geometries", geometries)?;
             }
             GeometryType::Point { coordinates } => {
                 dict.set_item("type", "Point")?;

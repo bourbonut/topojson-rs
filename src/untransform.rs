@@ -3,8 +3,8 @@ use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 
 struct Untransformer {
-    x0: f64,
-    y0: f64,
+    x0: i32,
+    y0: i32,
     kx: f64,
     ky: f64,
     dx: f64,
@@ -14,8 +14,8 @@ struct Untransformer {
 impl Untransformer {
     fn new(transform: &Transform) -> PyResult<Self> {
         PyResult::Ok(Self {
-            x0: 0.,
-            y0: 0.,
+            x0: 0,
+            y0: 0,
             kx: *transform.scale.get(0).ok_or(PyIndexError::new_err(
                 "\"transform.scale\" must be a list with at least two floating numbers.",
             ))?,
@@ -35,12 +35,12 @@ impl Untransformer {
 impl Untransformer {
     fn call(&mut self, input: &[f64], i: usize) -> Vec<i32> {
         if i == 0 {
-            self.x0 = 0.;
-            self.y0 = 0.;
+            self.x0 = 0;
+            self.y0 = 0;
         }
-        let mut output: Vec<f64> = input.iter().cloned().collect();
-        let x1 = ((input.get(0).unwrap_or(&f64::NAN) - self.dx) / self.kx).round();
-        let y1 = ((input.get(1).unwrap_or(&f64::NAN) - self.dy) / self.ky).round();
+        let mut output: Vec<i32> = input.iter().map(|&x| x as i32).collect();
+        let x1 = ((input.get(0).unwrap_or(&f64::NAN) - self.dx) / self.kx + 0.5).floor() as i32;
+        let y1 = ((input.get(1).unwrap_or(&f64::NAN) - self.dy) / self.ky + 0.5).floor() as i32;
         output[0] = x1 - self.x0;
         output[1] = y1 - self.y0;
         self.x0 = x1;
