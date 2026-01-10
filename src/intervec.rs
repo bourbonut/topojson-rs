@@ -375,6 +375,26 @@ impl<T> FromIterator<Vec<T>> for InterVec<T, 2> {
     }
 }
 
+impl<T> FromIterator<Vec<Vec<T>>> for InterVec<T, 3> {
+    fn from_iter<I: IntoIterator<Item = Vec<Vec<T>>>>(iter: I) -> Self {
+        let mut data = Vec::new();
+        let mut indices = Vec::new();
+        let mut length = 0;
+        for (i, item) in iter.into_iter().enumerate() {
+            length += 1;
+            for (j, item) in item.into_iter().enumerate() {
+                indices.extend((0..item.len()).map(|k| [i, j, k]));
+                data.extend(item);
+            }
+        }
+        Self {
+            indices,
+            data,
+            length,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -503,9 +523,14 @@ mod tests {
     #[test]
     fn test_ref_iter_data() {
         let (input, output) = input_test();
-        let actual: Vec<Vec<&[i32]>> = output
+        let actual: Vec<Vec<Vec<i32>>> = output
             .iter()
-            .map(|values| values.iter_data().collect())
+            .map(|values| {
+                values
+                    .iter_data()
+                    .map(|x| x.iter().map(|&x| x).collect())
+                    .collect()
+            })
             .collect();
         let expected: Vec<Vec<Vec<i32>>> = input
             .iter()

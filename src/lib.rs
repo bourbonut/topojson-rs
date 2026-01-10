@@ -7,8 +7,8 @@ mod intervec;
 // mod merge;
 // mod mesh;
 // mod neighbors;
-#[cfg(test)]
-mod parser;
+// #[cfg(test)]
+// mod parser;
 // mod quantize;
 mod reverse;
 // mod stitch;

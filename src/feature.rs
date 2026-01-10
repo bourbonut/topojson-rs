@@ -147,17 +147,17 @@ mod tests {
         TopoJSON {
             bbox: vec![],
             transform: Some(Transform {
-                scale: vec![1., 1.],
-                translate: vec![0., 0.],
+                scale: [1., 1.],
+                translate: [0., 0.],
             }),
             objects: HashMap::from_iter([("foo".to_string(), object)]),
-            arcs: vec![
+            arcs: InterVec::from_iter(vec![
                 vec![vec![0, 0], vec![1, 0], vec![0, 1], vec![-1, 0], vec![0, -1]],
                 vec![vec![0, 0], vec![1, 0], vec![0, 1]],
                 vec![vec![1, 1], vec![-1, 0], vec![0, -1]],
                 vec![vec![1, 1]],
                 vec![vec![0, 0]],
-            ],
+            ]),
         }
     }
 
@@ -165,7 +165,7 @@ mod tests {
     fn test_feature_1() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
+                arcs: InterVec::from_iter(vec![vec![0]]),
             },
             id: None,
             properties: None,
@@ -186,7 +186,7 @@ mod tests {
     fn test_feature_2() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Point {
-                coordinates: vec![0., 0.],
+                coordinates: [0., 0.],
             },
             id: None,
             properties: None,
@@ -198,7 +198,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::Point {
-                    coordinates: vec![0., 0.]
+                    coordinates: [0., 0.]
                 },
                 id: None,
                 bbox: None
@@ -211,7 +211,7 @@ mod tests {
     fn test_feature_3() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiPoint {
-                coordinates: vec![vec![0., 0.]],
+                coordinates: vec![[0., 0.]],
             },
             id: None,
             properties: None,
@@ -223,7 +223,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiPoint {
-                    coordinates: vec![vec![0., 0.]]
+                    coordinates: vec![[0., 0.]]
                 },
                 id: None,
                 bbox: None
@@ -246,13 +246,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
-                    coordinates: vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]
+                    coordinates: vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]
                 },
                 id: None,
                 bbox: None
@@ -265,7 +259,7 @@ mod tests {
     fn test_feature_5() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiLineString {
-                arcs: vec![vec![0]],
+                arcs: InterVec::from_iter(vec![vec![0]]),
             },
             id: None,
             properties: None,
@@ -277,13 +271,13 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiLineString {
-                    coordinates: vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]
+                    coordinates: InterVec::from_iter(vec![vec![
+                        [0., 0.],
+                        [1., 0.],
+                        [1., 1.],
+                        [0., 1.],
+                        [0., 0.]
+                    ]])
                 },
                 id: None,
                 bbox: None
@@ -306,7 +300,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
-                    coordinates: vec![vec![1., 1.], vec![1., 1.],]
+                    coordinates: vec![[1., 1.], [1., 1.]]
                 },
                 id: None,
                 bbox: None
@@ -315,7 +309,7 @@ mod tests {
 
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiLineString {
-                arcs: vec![vec![3], vec![4]],
+                arcs: InterVec::from_iter(vec![vec![3], vec![4]]),
             },
             id: None,
             properties: None,
@@ -327,10 +321,10 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiLineString {
-                    coordinates: vec![
-                        vec![vec![1., 1.], vec![1., 1.],],
-                        vec![vec![0., 0.], vec![0., 0.],]
-                    ]
+                    coordinates: InterVec::from_iter(vec![
+                        vec![[1., 1.], [1., 1.]],
+                        vec![[0., 0.], [0., 0.]]
+                    ])
                 },
                 id: None,
                 bbox: None
@@ -343,7 +337,7 @@ mod tests {
     fn test_feature_7() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
+                arcs: InterVec::from_iter(vec![vec![0]]),
             },
             id: None,
             properties: None,
@@ -355,13 +349,13 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::Polygon {
-                    coordinates: vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]
+                    coordinates: InterVec::from_iter(vec![vec![
+                        [0., 0.],
+                        [1., 0.],
+                        [1., 1.],
+                        [0., 1.],
+                        [0., 0.]
+                    ]])
                 },
                 id: None,
                 bbox: None
@@ -374,7 +368,7 @@ mod tests {
     fn test_feature_8() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiPolygon {
-                arcs: vec![vec![vec![0]]],
+                arcs: InterVec::from_iter(vec![vec![vec![0]]]),
             },
             id: None,
             properties: None,
@@ -386,13 +380,13 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiPolygon {
-                    coordinates: vec![vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]]
+                    coordinates: InterVec::from_iter(vec![vec![vec![
+                        [0., 0.],
+                        [1., 0.],
+                        [1., 1.],
+                        [0., 1.],
+                        [0., 0.]
+                    ]]])
                 },
                 id: None,
                 bbox: None
@@ -406,15 +400,15 @@ mod tests {
         let topology = TopoJSON {
             bbox: vec![],
             transform: Some(Transform {
-                scale: vec![1., 1.],
-                translate: vec![0., 0.],
+                scale: [1., 1.],
+                translate: [0., 0.],
             }),
             objects: HashMap::from_iter([
                 (
                     "foo".to_string(),
                     Geometry {
                         geometry: GeometryType::Polygon {
-                            arcs: vec![vec![0]],
+                            arcs: InterVec::from_iter(vec![vec![0]]),
                         },
                         id: None,
                         properties: None,
@@ -425,7 +419,7 @@ mod tests {
                     "bar".to_string(),
                     Geometry {
                         geometry: GeometryType::Polygon {
-                            arcs: vec![vec![0, 1]],
+                            arcs: InterVec::from_iter(vec![vec![0, 1]]),
                         },
                         id: None,
                         properties: None,
@@ -433,14 +427,17 @@ mod tests {
                     },
                 ),
             ]),
-            arcs: vec![vec![vec![0, 0], vec![1, 1]], vec![vec![1, 1], vec![-1, -1]]],
+            arcs: InterVec::from_iter(vec![
+                vec![vec![0, 0], vec![1, 1]],
+                vec![vec![1, 1], vec![-1, -1]],
+            ]),
         };
 
         if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["foo"])? {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![vec![0., 0.], vec![1., 1.], vec![0., 0.], vec![0., 0.]]]
+                    InterVec::from_iter(vec![vec![[0., 0.], [1., 1.], [0., 0.], [0., 0.]]])
                 );
             } else {
                 panic!("FeatureGeometryType of 'foo' must be variant of 'Polygon'.")
@@ -453,7 +450,7 @@ mod tests {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![vec![0., 0.], vec![1., 1.], vec![0., 0.], vec![0., 0.]]]
+                    InterVec::from_iter(vec![vec![[0., 0.], [1., 1.], [0., 0.], [0., 0.]]])
                 );
             } else {
                 panic!("FeatureGeometryType of 'bar' must be variant of 'Polygon'.")
@@ -471,7 +468,7 @@ mod tests {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
                     geometry: GeometryType::MultiPolygon {
-                        arcs: vec![vec![vec![0]]],
+                        arcs: InterVec::from_iter(vec![vec![vec![0]]]),
                     },
                     id: None,
                     properties: None,
@@ -489,13 +486,13 @@ mod tests {
                 features: vec![FeatureItem {
                     properties: None,
                     geometry: FeatureGeometryType::MultiPolygon {
-                        coordinates: vec![vec![vec![
-                            vec![0., 0.],
-                            vec![1., 0.],
-                            vec![1., 1.],
-                            vec![0., 1.],
-                            vec![0., 0.]
-                        ]]]
+                        coordinates: InterVec::from_iter(vec![vec![vec![
+                            [0., 0.],
+                            [1., 0.],
+                            [1., 1.],
+                            [0., 1.],
+                            [0., 0.]
+                        ]]])
                     },
                     id: None,
                     bbox: None
@@ -511,7 +508,7 @@ mod tests {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
                     geometry: GeometryType::Point {
-                        coordinates: vec![0., 0.],
+                        coordinates: [0., 0.],
                     },
                     id: None,
                     properties: None,
@@ -529,7 +526,7 @@ mod tests {
                 features: vec![FeatureItem {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
-                        coordinates: vec![0., 0.]
+                        coordinates: [0., 0.]
                     },
                     id: None,
                     bbox: None
@@ -545,7 +542,7 @@ mod tests {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
                     geometry: GeometryType::Point {
-                        coordinates: vec![0., 0.],
+                        coordinates: [0., 0.],
                     },
                     id: Some("feature".to_string()),
                     properties: None,
@@ -563,7 +560,7 @@ mod tests {
                 features: vec![FeatureItem {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
-                        coordinates: vec![0., 0.]
+                        coordinates: [0., 0.]
                     },
                     id: Some("feature".to_string()),
                     bbox: None
@@ -579,7 +576,7 @@ mod tests {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
                     geometry: GeometryType::Point {
-                        coordinates: vec![0., 0.],
+                        coordinates: [0., 0.],
                     },
                     id: None,
                     properties: Some(Properties {
@@ -603,7 +600,7 @@ mod tests {
                         name: "feature".to_string()
                     }),
                     geometry: FeatureGeometryType::Point {
-                        coordinates: vec![0., 0.]
+                        coordinates: [0., 0.]
                     },
                     id: None,
                     bbox: None
@@ -617,7 +614,7 @@ mod tests {
     fn test_feature_14() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
+                arcs: InterVec::from_iter(vec![vec![0]]),
             },
             id: Some("foo".to_string()),
             properties: None,
@@ -635,7 +632,7 @@ mod tests {
     fn test_feature_15() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
+                arcs: InterVec::from_iter(vec![vec![0]]),
             },
             id: None,
             properties: Some(Properties {
@@ -660,7 +657,7 @@ mod tests {
     fn test_feature_16() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
+                arcs: InterVec::from_iter(vec![vec![0]]),
             },
             id: None,
             properties: None,
@@ -679,7 +676,7 @@ mod tests {
     fn test_feature_17() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
+                arcs: InterVec::from_iter(vec![vec![0]]),
             },
             id: None,
             properties: None,
@@ -689,13 +686,13 @@ mod tests {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]
+                    InterVec::from_iter(vec![vec![
+                        [0., 0.],
+                        [1., 0.],
+                        [1., 1.],
+                        [0., 1.],
+                        [0., 0.]
+                    ]])
                 );
             } else {
                 panic!("Feature Geometry Type must be variant of 'Polygon'.")
@@ -710,7 +707,7 @@ mod tests {
     fn test_feature_18() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![!0]],
+                arcs: InterVec::from_iter(vec![vec![!0]]),
             },
             id: None,
             properties: None,
@@ -720,13 +717,13 @@ mod tests {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![
-                        vec![0., 0.],
-                        vec![0., 1.],
-                        vec![1., 1.],
-                        vec![1., 0.],
-                        vec![0., 0.]
-                    ]]
+                    InterVec::from_iter(vec![vec![
+                        [0., 0.],
+                        [0., 1.],
+                        [1., 1.],
+                        [1., 0.],
+                        [0., 0.]
+                    ]])
                 );
             } else {
                 panic!("Feature Geometry Type must be variant of 'Polygon'.")
@@ -751,13 +748,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
-                    coordinates: vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]
+                    coordinates: vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]
                 },
                 id: None,
                 bbox: None
@@ -766,7 +757,7 @@ mod tests {
 
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
-                arcs: vec![vec![!2, !1]],
+                arcs: InterVec::from_iter(vec![vec![!2, !1]]),
             },
             id: None,
             properties: None,
@@ -778,13 +769,13 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::Polygon {
-                    coordinates: vec![vec![
-                        vec![0., 0.],
-                        vec![0., 1.],
-                        vec![1., 1.],
-                        vec![1., 0.],
-                        vec![0., 0.]
-                    ]]
+                    coordinates: InterVec::from_iter(vec![vec![
+                        [0., 0.],
+                        [0., 1.],
+                        [1., 1.],
+                        [1., 0.],
+                        [0., 0.]
+                    ]])
                 },
                 id: None,
                 bbox: None
