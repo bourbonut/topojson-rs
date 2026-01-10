@@ -1,6 +1,11 @@
+use crate::intervec::InterVec;
 use std::collections::HashMap;
 
-use pyo3::{exceptions::PyKeyError, prelude::*, types::PyDict};
+use pyo3::{
+    exceptions::PyKeyError,
+    prelude::*,
+    types::{PyDict, PyList},
+};
 
 #[derive(Debug, PartialEq)]
 pub struct TopoJSON {
@@ -8,7 +13,7 @@ pub struct TopoJSON {
     pub bbox: Vec<f64>,
     pub transform: Option<Transform>,
     pub objects: HashMap<String, Geometry>,
-    pub arcs: Vec<Vec<Vec<i32>>>,
+    pub arcs: InterVec<i32, 3>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
@@ -28,10 +33,20 @@ impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {
             .get_item("objects")?
             .ok_or_else(|| PyKeyError::new_err("\"objects\" not found in the topojson"))?
             .extract()?;
-        let arcs = dict
+        let any = dict
             .get_item("arcs")?
-            .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in the topojson"))?
-            .extract()?;
+            .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in topojson"))?;
+        let mut arcs = InterVec::new();
+        let pyarcs: &Bound<'_, PyList> = any.cast()?;
+        for (i, pylevel2) in pyarcs.iter().enumerate() {
+            let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+            for (j, pylevel3) in level2.iter().enumerate() {
+                let level3: &Bound<'_, PyList> = pylevel3.cast()?;
+                for (k, value) in level3.iter().enumerate() {
+                    arcs.push(value.extract()?, [i, j, k]);
+                }
+            }
+        }
         Ok(Self {
             bbox,
             transform,
@@ -58,9 +73,9 @@ impl<'py> IntoPyObject<'py> for TopoJSON {
             transform_dict.set_item("translate", transform.translate)?;
             dict.set_item("transform", transform_dict)?;
         }
-        if !self.arcs.is_empty() {
-            dict.set_item("arcs", self.arcs)?;
-        }
+        // if !self.arcs.is_empty() {
+        //     dict.set_item("arcs", self.arcs)?;
+        // }
         if !self.objects.is_empty() {
             dict.set_item("objects", self.objects)?;
         }
@@ -70,8 +85,8 @@ impl<'py> IntoPyObject<'py> for TopoJSON {
 
 #[derive(Debug, PartialEq)]
 pub struct Transform {
-    pub scale: Vec<f64>,
-    pub translate: Vec<f64>,
+    pub scale: [f64; 2],
+    pub translate: [f64; 2],
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
@@ -94,12 +109,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
 #[derive(Debug, Clone, PartialEq)]
 pub enum GeometryType {
     GeometryCollection { geometries: Vec<Geometry> },
-    Point { coordinates: Vec<f64> },
-    MultiPoint { coordinates: Vec<Vec<f64>> },
+    Point { coordinates: [f64; 2] },
+    MultiPoint { coordinates: Vec<[f64; 2]> },
     LineString { arcs: Vec<i32> },
-    MultiLineString { arcs: Vec<Vec<i32>> },
-    Polygon { arcs: Vec<Vec<i32>> },
-    MultiPolygon { arcs: Vec<Vec<Vec<i32>>> },
+    MultiLineString { arcs: InterVec<i32, 2> },
+    Polygon { arcs: InterVec<i32, 2> },
+    MultiPolygon { arcs: InterVec<i32, 3> },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -156,22 +171,58 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Geometry {
                     .extract()?,
             },
             "MultiLineString" => GeometryType::MultiLineString {
-                arcs: dict
-                    .get_item("arcs")?
-                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
-                    .extract()?,
+                arcs: {
+                    let any = dict
+                        .get_item("arcs")?
+                        .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?;
+                    let pyarcs: &Bound<'_, PyList> = any.cast()?;
+
+                    let mut arcs = InterVec::new();
+                    for (i, pylevel2) in pyarcs.iter().enumerate() {
+                        let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+                        for (j, value) in level2.iter().enumerate() {
+                            arcs.push(value.extract()?, [i, j]);
+                        }
+                    }
+                    arcs
+                },
             },
             "Polygon" => GeometryType::Polygon {
-                arcs: dict
-                    .get_item("arcs")?
-                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
-                    .extract()?,
+                arcs: {
+                    let any = dict
+                        .get_item("arcs")?
+                        .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?;
+                    let pyarcs: &Bound<'_, PyList> = any.cast()?;
+
+                    let mut arcs = InterVec::new();
+                    for (i, pylevel2) in pyarcs.iter().enumerate() {
+                        let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+                        for (j, value) in level2.iter().enumerate() {
+                            arcs.push(value.extract()?, [i, j]);
+                        }
+                    }
+                    arcs
+                },
             },
             "MultiPolygon" => GeometryType::MultiPolygon {
-                arcs: dict
-                    .get_item("arcs")?
-                    .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?
-                    .extract()?,
+                arcs: {
+                    let any = dict
+                        .get_item("arcs")?
+                        .ok_or_else(|| PyKeyError::new_err("\"arcs\" not found in \"geometry\""))?;
+                    let pyarcs: &Bound<'_, PyList> = any.cast()?;
+
+                    let mut arcs = InterVec::new();
+                    for (i, pylevel2) in pyarcs.iter().enumerate() {
+                        let level2: &Bound<'_, PyList> = pylevel2.cast()?;
+                        for (j, pylevel3) in level2.iter().enumerate() {
+                            let level3: &Bound<'_, PyList> = pylevel3.cast()?;
+                            for (k, value) in level3.iter().enumerate() {
+                                arcs.push(value.extract()?, [i, j, k]);
+                            }
+                        }
+                    }
+                    arcs
+                },
             },
             unknown_type => {
                 return Err(PyKeyError::new_err(format!(
@@ -228,15 +279,15 @@ impl<'py> IntoPyObject<'py> for Geometry {
             }
             GeometryType::MultiLineString { arcs } => {
                 dict.set_item("type", "MultiLineString")?;
-                dict.set_item("arcs", arcs)?;
+                // dict.set_item("arcs", arcs)?;
             }
             GeometryType::Polygon { arcs } => {
                 dict.set_item("type", "Polygon")?;
-                dict.set_item("arcs", arcs)?;
+                // dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiPolygon { arcs } => {
                 dict.set_item("type", "MultiPolygon")?;
-                dict.set_item("arcs", arcs)?;
+                // dict.set_item("arcs", arcs)?;
             }
         }
         Ok(dict)
@@ -281,15 +332,15 @@ impl<'py> IntoPyObject<'py> for &Geometry {
             }
             GeometryType::MultiLineString { arcs } => {
                 dict.set_item("type", "MultiLineString")?;
-                dict.set_item("arcs", arcs)?;
+                // dict.set_item("arcs", arcs)?;
             }
             GeometryType::Polygon { arcs } => {
                 dict.set_item("type", "Polygon")?;
-                dict.set_item("arcs", arcs)?;
+                // dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiPolygon { arcs } => {
                 dict.set_item("type", "MultiPolygon")?;
-                dict.set_item("arcs", arcs)?;
+                // dict.set_item("arcs", arcs)?;
             }
         }
         Ok(dict)
