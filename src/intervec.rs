@@ -1,3 +1,4 @@
+use pyo3::{prelude::*, types::PyList};
 use std::array::from_fn;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -392,6 +393,74 @@ impl<T> FromIterator<Vec<Vec<T>>> for InterVec<T, 3> {
             data,
             length,
         }
+    }
+}
+
+impl<'py, T: Clone + IntoPyObject<'py>> IntoPyObject<'py> for InterVec<T, 2> {
+    type Target = PyList;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let list = PyList::empty(py);
+        for data in self.iter_data() {
+            let values = PyList::new(py, data.to_vec())?;
+            list.append(values)?;
+        }
+        Ok(list)
+    }
+}
+
+impl<'py, T: Clone + IntoPyObject<'py>> IntoPyObject<'py> for InterVec<T, 3> {
+    type Target = PyList;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let list = PyList::empty(py);
+        for ref_vec in self.iter() {
+            let container = PyList::empty(py);
+            for data in ref_vec.iter_data() {
+                let values = PyList::new(py, data.to_vec())?;
+                container.append(values)?;
+            }
+            list.append(container)?;
+        }
+        Ok(list)
+    }
+}
+
+impl<'py, T: Clone + IntoPyObject<'py>> IntoPyObject<'py> for &InterVec<T, 2> {
+    type Target = PyList;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let list = PyList::empty(py);
+        for data in self.iter_data() {
+            let values = PyList::new(py, data.to_vec())?;
+            list.append(values)?;
+        }
+        Ok(list)
+    }
+}
+
+impl<'py, T: Clone + IntoPyObject<'py>> IntoPyObject<'py> for &InterVec<T, 3> {
+    type Target = PyList;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let list = PyList::empty(py);
+        for ref_vec in self.iter() {
+            let container = PyList::empty(py);
+            for data in ref_vec.iter_data() {
+                let values = PyList::new(py, data.to_vec())?;
+                container.append(values)?;
+            }
+            list.append(container)?;
+        }
+        Ok(list)
     }
 }
 

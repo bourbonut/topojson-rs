@@ -39,8 +39,7 @@ def benchmark(name, py_func, rs_func):
     end = perf_counter()
     t2 = (end - start) * 1_000
 
-    # is_same = actual == expected
-    is_same = False
+    is_same = actual == expected
     print(
         f"{name.title():>10}: ratio: {t1 / t2:.3f}, python: {t1:>6.3f} ms, rust: {t2:>6.3f} ms ({is_same})"
     )

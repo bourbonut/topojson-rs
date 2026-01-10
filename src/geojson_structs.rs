@@ -128,19 +128,19 @@ impl<'py> IntoPyObject<'py> for FeatureGeometryType {
             FeatureGeometryType::MultiLineString { coordinates } => {
                 let dict = PyDict::new(py);
                 dict.set_item("type", "MultiLineString")?;
-                // dict.set_item("coordinates", coordinates)?;
+                dict.set_item("coordinates", coordinates)?;
                 Ok(dict)
             }
             FeatureGeometryType::Polygon { coordinates } => {
                 let dict = PyDict::new(py);
                 dict.set_item("type", "Polygon")?;
-                // dict.set_item("coordinates", coordinates)?;
+                dict.set_item("coordinates", coordinates)?;
                 Ok(dict)
             }
             FeatureGeometryType::MultiPolygon { coordinates } => {
                 let dict = PyDict::new(py);
                 dict.set_item("type", "MultiPolygon")?;
-                // dict.set_item("coordinates", coordinates)?;
+                dict.set_item("coordinates", coordinates)?;
                 Ok(dict)
             }
         }

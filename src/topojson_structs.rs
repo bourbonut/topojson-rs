@@ -73,9 +73,9 @@ impl<'py> IntoPyObject<'py> for TopoJSON {
             transform_dict.set_item("translate", transform.translate)?;
             dict.set_item("transform", transform_dict)?;
         }
-        // if !self.arcs.is_empty() {
-        //     dict.set_item("arcs", self.arcs)?;
-        // }
+        if !self.arcs.is_empty() {
+            dict.set_item("arcs", self.arcs)?;
+        }
         if !self.objects.is_empty() {
             dict.set_item("objects", self.objects)?;
         }
@@ -279,15 +279,15 @@ impl<'py> IntoPyObject<'py> for Geometry {
             }
             GeometryType::MultiLineString { arcs } => {
                 dict.set_item("type", "MultiLineString")?;
-                // dict.set_item("arcs", arcs)?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::Polygon { arcs } => {
                 dict.set_item("type", "Polygon")?;
-                // dict.set_item("arcs", arcs)?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiPolygon { arcs } => {
                 dict.set_item("type", "MultiPolygon")?;
-                // dict.set_item("arcs", arcs)?;
+                dict.set_item("arcs", arcs)?;
             }
         }
         Ok(dict)
@@ -332,15 +332,15 @@ impl<'py> IntoPyObject<'py> for &Geometry {
             }
             GeometryType::MultiLineString { arcs } => {
                 dict.set_item("type", "MultiLineString")?;
-                // dict.set_item("arcs", arcs)?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::Polygon { arcs } => {
                 dict.set_item("type", "Polygon")?;
-                // dict.set_item("arcs", arcs)?;
+                dict.set_item("arcs", arcs)?;
             }
             GeometryType::MultiPolygon { arcs } => {
                 dict.set_item("type", "MultiPolygon")?;
-                // dict.set_item("arcs", arcs)?;
+                dict.set_item("arcs", arcs)?;
             }
         }
         Ok(dict)
