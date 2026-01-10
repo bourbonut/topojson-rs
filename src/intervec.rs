@@ -8,19 +8,25 @@ pub struct InterVec<T, const N: usize> {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-struct RefInterVec<'a, T, const N: usize> {
+pub struct RefInterVec<'a, T, const N: usize> {
     indices: &'a [[usize; N]],
     data: &'a [T],
     length: usize,
     depth: usize,
 }
 
-struct IterData<'a, T, const N: usize> {
+pub struct IterData<'a, T, const N: usize> {
     indices: &'a [[usize; N]],
     data: &'a [T],
     length: usize,
     index: usize,
     depth: usize,
+}
+
+pub trait InterIterator<'a, T, const N: usize> {
+    fn iter(&self) -> IterRef<'_, T, N>;
+    fn iter_data(&self) -> IterData<'_, T, N>;
+    fn iter_flatten(&self) -> IterFlatten<'_, T, N>;
 }
 
 impl<'a, T, const N: usize> Iterator for IterData<'a, T, N> {
@@ -80,8 +86,10 @@ impl<'a, T, const N: usize> RefInterVec<'a, T, N> {
     pub fn len(&self) -> usize {
         self.length
     }
+}
 
-    pub fn iter_data(&self) -> IterData<'a, T, N> {
+impl<'a, T, const N: usize> InterIterator<'a, T, N> for RefInterVec<'a, T, N> {
+    fn iter_data(&self) -> IterData<'_, T, N> {
         IterData {
             indices: self.indices,
             data: self.data,
@@ -91,7 +99,7 @@ impl<'a, T, const N: usize> RefInterVec<'a, T, N> {
         }
     }
 
-    pub fn iter(&self) -> IterRef<'_, T, N> {
+    fn iter(&self) -> IterRef<'_, T, N> {
         if self.depth + 1 >= N {
             panic!("Unable to iterate deeper than current depth {}", self.depth);
         }
@@ -105,7 +113,7 @@ impl<'a, T, const N: usize> RefInterVec<'a, T, N> {
         }
     }
 
-    pub fn iter_flatten(&self) -> IterFlatten<'_, T, N> {
+    fn iter_flatten(&self) -> IterFlatten<'_, T, N> {
         IterFlatten {
             indices: self.indices,
             data: self.data,
@@ -115,7 +123,7 @@ impl<'a, T, const N: usize> RefInterVec<'a, T, N> {
     }
 }
 
-struct IterRef<'a, T, const N: usize> {
+pub struct IterRef<'a, T, const N: usize> {
     indices: &'a [[usize; N]],
     data: &'a [T],
     depth: usize,
@@ -152,7 +160,7 @@ impl<'a, T, const N: usize> Iterator for IterRef<'a, T, N> {
     }
 }
 
-struct IterFlatten<'a, T, const N: usize> {
+pub struct IterFlatten<'a, T, const N: usize> {
     indices: &'a [[usize; N]],
     data: &'a [T],
     length: usize,
@@ -229,38 +237,6 @@ impl<T, const N: usize> InterVec<T, N> {
         self.indices.push(indices);
     }
 
-    pub fn iter(&self) -> IterRef<'_, T, N> {
-        if N == 0 {
-            panic!("Unable to iterate deeper than current depth 0");
-        }
-        IterRef {
-            indices: self.indices.as_slice(),
-            data: self.data.as_slice(),
-            depth: 0,
-            length: self.indices.len(),
-            index: 0,
-        }
-    }
-
-    pub fn iter_data(&self) -> IterData<'_, T, N> {
-        IterData {
-            indices: self.indices.as_slice(),
-            data: self.data.as_slice(),
-            length: self.indices.len(),
-            index: 0,
-            depth: 0,
-        }
-    }
-
-    pub fn iter_flatten(&self) -> IterFlatten<'_, T, N> {
-        IterFlatten {
-            indices: self.indices.as_slice(),
-            data: self.data.as_slice(),
-            length: self.indices.len(),
-            index: 0,
-        }
-    }
-
     pub fn extend<const M: usize>(&mut self, other: InterVec<T, M>) {
         if M > N {
             panic!(
@@ -309,6 +285,40 @@ impl<T, const N: usize> InterVec<T, N> {
     }
 }
 
+impl<'a, T, const N: usize> InterIterator<'a, T, N> for InterVec<T, N> {
+    fn iter(&self) -> IterRef<'_, T, N> {
+        if N == 0 {
+            panic!("Unable to iterate deeper than current depth 0");
+        }
+        IterRef {
+            indices: self.indices.as_slice(),
+            data: self.data.as_slice(),
+            depth: 0,
+            length: self.indices.len(),
+            index: 0,
+        }
+    }
+
+    fn iter_data(&self) -> IterData<'_, T, N> {
+        IterData {
+            indices: self.indices.as_slice(),
+            data: self.data.as_slice(),
+            length: self.indices.len(),
+            index: 0,
+            depth: 0,
+        }
+    }
+
+    fn iter_flatten(&self) -> IterFlatten<'_, T, N> {
+        IterFlatten {
+            indices: self.indices.as_slice(),
+            data: self.data.as_slice(),
+            length: self.indices.len(),
+            index: 0,
+        }
+    }
+}
+
 impl<T, const N: usize> FromIterator<([usize; N], T)> for InterVec<T, N> {
     fn from_iter<I: IntoIterator<Item = ([usize; N], T)>>(iter: I) -> Self {
         let mut length = 0;
@@ -319,6 +329,44 @@ impl<T, const N: usize> FromIterator<([usize; N], T)> for InterVec<T, N> {
                 (indices, data)
             })
             .unzip();
+        Self {
+            indices,
+            data,
+            length,
+        }
+    }
+}
+
+impl<T, const N: usize, const M: usize> FromIterator<InterVec<T, M>> for InterVec<T, N> {
+    fn from_iter<I: IntoIterator<Item = InterVec<T, M>>>(iter: I) -> Self {
+        let mut length = 0;
+        let mut indices = Vec::new();
+        let mut data = Vec::new();
+        for (k, item) in iter.into_iter().enumerate() {
+            length += 1;
+            indices.extend(item.indices.iter().map(|indices| -> [usize; N] {
+                from_fn(|i| if i == 0 { k } else { indices[i - 1] })
+            }));
+            data.extend(item.data);
+        }
+        Self {
+            indices,
+            data,
+            length,
+        }
+    }
+}
+
+impl<T> FromIterator<Vec<T>> for InterVec<T, 2> {
+    fn from_iter<I: IntoIterator<Item = Vec<T>>>(iter: I) -> Self {
+        let mut data = Vec::new();
+        let mut indices = Vec::new();
+        let mut length = 0;
+        for (i, item) in iter.into_iter().enumerate() {
+            length += 1;
+            indices.extend((0..item.len()).map(|k| [i, k]));
+            data.extend(item);
+        }
         Self {
             indices,
             data,
@@ -604,5 +652,38 @@ mod tests {
             }
             indices
         });
+    }
+
+    #[test]
+    fn test_from_inter_vec() {
+        let (input, expected) = input_test();
+        let mut collection = Vec::new();
+        for level1 in input.iter() {
+            let mut inter_vec = InterVec::new();
+            for (j, level2) in level1.iter().enumerate() {
+                for (k, level3) in level2.iter().enumerate() {
+                    for (l, &value) in level3.iter().enumerate() {
+                        inter_vec.push(value, [j, k, l]);
+                    }
+                }
+            }
+            collection.push(inter_vec);
+        }
+        let actual: InterVec<i32, 4> = InterVec::from_iter(collection);
+        assert_eq!(actual.data, expected.data);
+        assert_eq!(actual.indices, expected.indices);
+        assert_eq!(actual.length, expected.length);
+    }
+
+    #[test]
+    fn test_from_vec() {
+        let values = vec![vec![0, 1, 2], vec![3, 4, 5]];
+        let input = InterVec::from_iter(values);
+        assert_eq!(input.data, [0, 1, 2, 3, 4, 5]);
+        assert_eq!(
+            input.indices,
+            [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]]
+        );
+        assert_eq!(input.length, 2);
     }
 }

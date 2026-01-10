@@ -1,4 +1,4 @@
-use crate::topojson_structs::Properties;
+use crate::{intervec::InterVec, topojson_structs::Properties};
 use pyo3::{prelude::*, types::PyDict};
 
 #[derive(Debug, PartialEq)]
@@ -75,22 +75,22 @@ pub enum FeatureGeometryType {
         geometries: Vec<FeatureGeometryType>,
     },
     Point {
-        coordinates: Vec<f64>,
+        coordinates: [f64; 2],
     },
     MultiPoint {
-        coordinates: Vec<Vec<f64>>,
+        coordinates: Vec<[f64; 2]>,
     },
     LineString {
-        coordinates: Vec<Vec<f64>>,
+        coordinates: Vec<[f64; 2]>,
     },
     MultiLineString {
-        coordinates: Vec<Vec<Vec<f64>>>,
+        coordinates: InterVec<[f64; 2], 2>,
     },
     Polygon {
-        coordinates: Vec<Vec<Vec<f64>>>,
+        coordinates: InterVec<[f64; 2], 2>,
     },
     MultiPolygon {
-        coordinates: Vec<Vec<Vec<Vec<f64>>>>,
+        coordinates: InterVec<[f64; 2], 3>,
     },
 }
 
@@ -128,19 +128,19 @@ impl<'py> IntoPyObject<'py> for FeatureGeometryType {
             FeatureGeometryType::MultiLineString { coordinates } => {
                 let dict = PyDict::new(py);
                 dict.set_item("type", "MultiLineString")?;
-                dict.set_item("coordinates", coordinates)?;
+                // dict.set_item("coordinates", coordinates)?;
                 Ok(dict)
             }
             FeatureGeometryType::Polygon { coordinates } => {
                 let dict = PyDict::new(py);
                 dict.set_item("type", "Polygon")?;
-                dict.set_item("coordinates", coordinates)?;
+                // dict.set_item("coordinates", coordinates)?;
                 Ok(dict)
             }
             FeatureGeometryType::MultiPolygon { coordinates } => {
                 let dict = PyDict::new(py);
                 dict.set_item("type", "MultiPolygon")?;
-                dict.set_item("coordinates", coordinates)?;
+                // dict.set_item("coordinates", coordinates)?;
                 Ok(dict)
             }
         }

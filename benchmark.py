@@ -46,14 +46,14 @@ def benchmark(name, py_func, rs_func):
     )
 
 
-# topology = load_land()
-# land = topology["objects"]["land"]
-# benchmark(
-#     "feature",
-#     lambda: Feature()(topology, land),
-#     lambda: topojson.feature(topology, land),
-# )
-#
+topology = load_land()
+land = topology["objects"]["land"]
+benchmark(
+    "feature",
+    lambda: Feature()(topology, land),
+    lambda: topojson.feature(topology, land),
+)
+
 # topology = load_land()
 # land = topology["objects"]["land"]
 # benchmark(
@@ -62,13 +62,13 @@ def benchmark(name, py_func, rs_func):
 #     lambda: topojson.mesh(topology, land, filter=None),
 # )
 
-topology = load_counties()
-objects = topology["objects"]["counties"]["geometries"]
-benchmark(
-    "merge",
-    lambda: Merge()(topology, objects),
-    lambda: topojson.merge(topology, objects),
-)
+# topology = load_counties()
+# objects = topology["objects"]["counties"]["geometries"]
+# benchmark(
+#     "merge",
+#     lambda: Merge()(topology, objects),
+#     lambda: topojson.merge(topology, objects),
+# )
 
 # topology = load_states()
 # objects = list(topology["objects"].values())

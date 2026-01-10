@@ -1,8 +1,11 @@
 use crate::geojson_structs::{Feature, FeatureCollection, FeatureGeometryType, FeatureItem};
+use crate::intervec::{InterIterator, InterVec};
 use crate::reverse::reverse;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
-use crate::transform::transform;
+use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 use pyo3::prelude::PyResult;
+use std::array::from_fn;
+use std::usize;
 
 pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
     match &o.geometry {
@@ -18,7 +21,7 @@ pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
 }
 
 fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
-    let geometry = Object::call(topology, &o)?;
+    let geometry = object(topology, &o)?;
     let id = o.id.clone();
     let bbox = o.bbox.clone();
     let properties = o.properties.clone();
@@ -30,30 +33,41 @@ fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
     })
 }
 
-pub struct Object<'a> {
-    arcs: &'a Vec<Vec<Vec<i32>>>,
-    transform_point: Box<dyn FnMut(&[f64], usize) -> Vec<f64>>,
+fn object(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
+    match &topology.transform {
+        Some(transform) => Object::call(topology, o, ScaleTransformer::new(transform)),
+        None => Object::call(topology, o, IdentityTransformer::new()),
+    }
 }
 
-impl<'a> Object<'a> {
-    pub fn call(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
+pub struct Object<'a, T>
+where
+    T: Transformer,
+{
+    arcs: &'a InterVec<i32, 3>,
+    transformer: T,
+}
+
+impl<'a, T: Transformer> Object<'a, T> {
+    pub fn call(
+        topology: &TopoJSON,
+        o: &Geometry,
+        transformer: T,
+    ) -> PyResult<FeatureGeometryType> {
         let mut object = Object {
             arcs: &topology.arcs,
-            transform_point: transform(&topology.transform)?,
+            transformer,
         };
         Ok(object.geometry(o))
     }
 
-    fn arc(&mut self, i: i32, points: &mut Vec<Vec<f64>>) {
+    fn arc(&mut self, i: i32, points: &mut Vec<[f64; 2]>) {
         if !points.is_empty() {
             points.pop();
         }
-        let a = &self.arcs[if i < 0 { !i as usize } else { i as usize }];
-        for (k, arc) in a.iter().enumerate() {
-            points.push((self.transform_point)(
-                &arc.iter().map(|&x| x as f64).collect::<Vec<f64>>(),
-                k,
-            ));
+        let a = self.arcs.get(if i < 0 { !i } else { i } as usize).unwrap();
+        for (k, arc) in a.iter_data().enumerate() {
+            points.push(self.transformer.call(&from_fn(|i| arc[i] as f64), k));
         }
         if i < 0 {
             reverse(points, a.len());
@@ -61,11 +75,11 @@ impl<'a> Object<'a> {
     }
 
     #[inline]
-    fn point(&mut self, p: &[f64]) -> Vec<f64> {
-        (self.transform_point)(&p, 0)
+    fn point(&mut self, p: &[f64; 2]) -> [f64; 2] {
+        self.transformer.call(p, 0)
     }
 
-    fn line(&mut self, arcs: &[i32]) -> Vec<Vec<f64>> {
+    fn line(&mut self, arcs: &[i32]) -> Vec<[f64; 2]> {
         let mut points = Vec::new();
         for &arc in arcs {
             self.arc(arc, &mut points);
@@ -77,7 +91,7 @@ impl<'a> Object<'a> {
     }
 
     #[inline]
-    fn ring(&mut self, arcs: &[i32]) -> Vec<Vec<f64>> {
+    fn ring(&mut self, arcs: &[i32]) -> Vec<[f64; 2]> {
         let mut points = self.line(arcs);
         while points.len() < 4 {
             points.push(points[0].clone());
@@ -86,8 +100,11 @@ impl<'a> Object<'a> {
     }
 
     #[inline]
-    fn polygon(&mut self, arcs: &[Vec<i32>]) -> Vec<Vec<Vec<f64>>> {
-        arcs.iter().map(|arcs| self.ring(arcs)).collect()
+    fn polygon<'b, const N: usize, I: InterIterator<'b, i32, N>>(
+        &mut self,
+        arcs: &I,
+    ) -> InterVec<[f64; 2], 2> {
+        arcs.iter_data().map(|arcs| self.ring(arcs)).collect()
     }
 
     fn geometry(&mut self, o: &Geometry) -> FeatureGeometryType {
@@ -107,13 +124,13 @@ impl<'a> Object<'a> {
                 coordinates: self.line(arcs),
             },
             GeometryType::MultiLineString { arcs } => FeatureGeometryType::MultiLineString {
-                coordinates: arcs.iter().map(|arcs| self.line(arcs)).collect(),
+                coordinates: arcs.iter_data().map(|arcs| self.line(arcs)).collect(),
             },
             GeometryType::Polygon { arcs } => FeatureGeometryType::Polygon {
                 coordinates: self.polygon(arcs),
             },
             GeometryType::MultiPolygon { arcs } => FeatureGeometryType::MultiPolygon {
-                coordinates: arcs.iter().map(|arcs| self.polygon(arcs)).collect(),
+                coordinates: arcs.iter().map(|arcs| self.polygon(&arcs)).collect(),
             },
         }
     }

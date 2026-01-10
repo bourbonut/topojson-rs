@@ -1,7 +1,5 @@
-use std::time::Instant;
-
 // use crate::bbox::wrap_bbox;
-// use crate::feature::wrap_feature;
+use crate::feature::wrap_feature;
 use crate::geojson_structs::{Feature, FeatureGeometryType};
 // use crate::merge::wrap_merge;
 // use crate::mesh::wrap_mesh;
@@ -13,28 +11,23 @@ use pyo3::{
     types::{PyAny, PyDict, PyFunction, PyString},
 };
 
-// #[pyfunction]
-// pub fn feature(topology: TopoJSON, o: &Bound<'_, PyAny>) -> PyResult<Feature> {
-//     let feature = if o.is_instance_of::<PyString>() {
-//         let key: String = o.extract::<String>()?;
-//         let o = &topology.objects[&key];
-//         wrap_feature(&topology, o)?
-//     } else {
-//         let o: Geometry = o.extract()?;
-//         wrap_feature(&topology, &o)?
-//     };
-//     Ok(feature)
-// }
-
 #[pyfunction]
-pub fn merge(topology: Bound<'_, PyDict>, objects: Vec<Geometry>) -> PyResult<i32> {
-    // PyResult<FeatureGeometryType>
-    // let start = Instant::now();
-    let _topology: TopoJSON = topology.extract()?;
-    // let end = Instant::now();
-    // println!("duration: {:?}", (end - start).as_nanos() as f64 * 1e-9);
-    Ok(12) // wrap_merge(&topology, &objects)?
+pub fn feature(topology: TopoJSON, o: &Bound<'_, PyAny>) -> PyResult<Feature> {
+    let feature = if o.is_instance_of::<PyString>() {
+        let key: String = o.extract::<String>()?;
+        let o = &topology.objects[&key];
+        wrap_feature(&topology, o)?
+    } else {
+        let o: Geometry = o.extract()?;
+        wrap_feature(&topology, &o)?
+    };
+    Ok(feature)
 }
+
+// #[pyfunction]
+// pub fn merge(topology: TopoJSON, objects: Vec<Geometry>) -> PyResult<FeatureGeometryType> {
+//     Ok(wrap_merge(&topology, &objects)?)
+// }
 
 // #[pyfunction]
 // pub fn mesh(
