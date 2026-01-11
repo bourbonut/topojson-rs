@@ -24,11 +24,31 @@ fn planar_ring_area(ring: &Vec<[f64; 2]>) -> f64 {
     area.abs()
 }
 
+fn area(topology: &TopoJSON, ring: &Vec<i32>) -> f64 {
+    if let FeatureGeometryType::Polygon { coordinates } = object_func(
+        topology,
+        &Geometry {
+            geometry: GeometryType::Polygon {
+                arcs: vec![ring.to_vec()], // TODO: remove `to_vec`
+            },
+            id: None,
+            properties: None,
+            bbox: None,
+        },
+    ) {
+        planar_ring_area(&coordinates[0])
+    } else {
+        unreachable!(
+            "Object function with 'GeometryType::Polygon' must return 'FeatureGeometryType::Polygon'"
+        )
+    }
+}
+
 #[derive(Default)]
 struct MergeArcs<'a> {
-    polygons_by_arcs: HashMap<usize, Vec<Vec<Vec<i32>>>>,
+    polygons_by_arcs: HashMap<usize, Vec<&'a Vec<Vec<i32>>>>,
     polygons: Vec<&'a Vec<Vec<i32>>>,
-    groups: Vec<Vec<Vec<Vec<i32>>>>,
+    groups: Vec<Vec<&'a Vec<Vec<i32>>>>,
 }
 
 impl<'a> MergeArcs<'a> {
@@ -36,16 +56,16 @@ impl<'a> MergeArcs<'a> {
         MergeArcs::default().merge(topology, objects)
     }
 
-    fn merge(&mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) -> Geometry {
+    fn merge(mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) -> Geometry {
         objects.iter().for_each(|o| self.geometry(o));
         let mut visited_polygons = HashSet::new();
         let state = RandomState::new();
 
-        for polygon in self.polygons.iter() {
+        for polygon in self.polygons {
             let hash = state.hash_one(polygon);
             if !visited_polygons.contains(&hash) {
                 let mut group = Vec::new();
-                let mut neighbors = vec![polygon.to_vec()];
+                let mut neighbors = vec![polygon];
                 visited_polygons.insert(hash);
 
                 while let Some(polygon) = neighbors.pop() {
@@ -56,7 +76,7 @@ impl<'a> MergeArcs<'a> {
                                 let hash = state.hash_one(polygon);
                                 if !visited_polygons.contains(&hash) {
                                     visited_polygons.insert(hash);
-                                    neighbors.push(polygon.to_vec());
+                                    neighbors.push(polygon);
                                 }
                             }
                         }
@@ -86,9 +106,9 @@ impl<'a> MergeArcs<'a> {
 
             let n = arcs.len();
             if n > 1 {
-                let mut k = self.area(topology, &arcs[0]);
+                let mut k = area(topology, &arcs[0]);
                 for i in 1..n {
-                    let ki = self.area(topology, &arcs[i]);
+                    let ki = area(topology, &arcs[i]);
                     if ki > k {
                         arcs.swap(0, i);
                         k = ki;
@@ -127,31 +147,11 @@ impl<'a> MergeArcs<'a> {
                 let arc = if arc < 0 { !arc } else { arc } as usize;
                 self.polygons_by_arcs
                     .entry(arc)
-                    .and_modify(|polygons: &mut Vec<Vec<Vec<i32>>>| polygons.push(polygon.to_vec()))
-                    .or_insert(vec![polygon.to_vec()]);
+                    .and_modify(|polygons: &mut Vec<&'a Vec<Vec<i32>>>| polygons.push(polygon))
+                    .or_insert(vec![polygon]);
             });
         });
         self.polygons.push(polygon);
-    }
-
-    fn area(&self, topology: &TopoJSON, ring: &Vec<i32>) -> f64 {
-        if let FeatureGeometryType::Polygon { coordinates } = object_func(
-            topology,
-            &Geometry {
-                geometry: GeometryType::Polygon {
-                    arcs: vec![ring.to_vec()], // TODO: remove `to_vec`
-                },
-                id: None,
-                properties: None,
-                bbox: None,
-            },
-        ) {
-            planar_ring_area(&coordinates[0])
-        } else {
-            unreachable!(
-                "Object function with 'GeometryType::Polygon' must return 'FeatureGeometryType::Polygon'"
-            )
-        }
     }
 }
 
