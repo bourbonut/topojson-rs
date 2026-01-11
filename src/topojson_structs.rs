@@ -8,7 +8,7 @@ pub struct TopoJSON {
     pub bbox: Vec<f64>,
     pub transform: Option<Transform>,
     pub objects: HashMap<String, Geometry>,
-    pub arcs: Vec<Vec<Vec<i32>>>,
+    pub arcs: Vec<Vec<[i32; 2]>>,
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for TopoJSON {

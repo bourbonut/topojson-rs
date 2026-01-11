@@ -3,7 +3,6 @@ use crate::reverse::reverse;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 use pyo3::prelude::PyResult;
-use std::array::from_fn;
 
 pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
     match &o.geometry {
@@ -42,7 +41,7 @@ pub struct Object<'a, T>
 where
     T: Transformer,
 {
-    arcs: &'a Vec<Vec<Vec<i32>>>,
+    arcs: &'a Vec<Vec<[i32; 2]>>,
     transformer: T,
 }
 
@@ -65,7 +64,7 @@ impl<'a, T: Transformer> Object<'a, T> {
         }
         let a = &self.arcs[if i < 0 { !i } else { i } as usize];
         for (k, arc) in a.iter().enumerate() {
-            points.push(self.transformer.call(&from_fn(|i| arc[i] as f64), k));
+            points.push(self.transformer.call(&arc.map(|x| x as f64), k));
         }
         if i < 0 {
             reverse(points, a.len());
@@ -147,11 +146,11 @@ mod tests {
             }),
             objects: HashMap::from_iter([("foo".to_string(), object)]),
             arcs: vec![
-                vec![vec![0, 0], vec![1, 0], vec![0, 1], vec![-1, 0], vec![0, -1]],
-                vec![vec![0, 0], vec![1, 0], vec![0, 1]],
-                vec![vec![1, 1], vec![-1, 0], vec![0, -1]],
-                vec![vec![1, 1]],
-                vec![vec![0, 0]],
+                vec![[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1]],
+                vec![[0, 0], [1, 0], [0, 1]],
+                vec![[1, 1], [-1, 0], [0, -1]],
+                vec![[1, 1]],
+                vec![[0, 0]],
             ],
         }
     }
@@ -401,7 +400,7 @@ mod tests {
                     },
                 ),
             ]),
-            arcs: vec![vec![vec![0, 0], vec![1, 1]], vec![vec![1, 1], vec![-1, -1]]],
+            arcs: vec![vec![[0, 0], [1, 1]], vec![[1, 1], [-1, -1]]],
         };
 
         if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["foo"])? {

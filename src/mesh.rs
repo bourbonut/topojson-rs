@@ -180,7 +180,7 @@ mod tests {
                     bbox: None,
                 },
             )]),
-            arcs: vec![vec![vec![1, 0], vec![2, 0]], vec![vec![0, 0], vec![1, 0]]],
+            arcs: vec![vec![[1, 0], [2, 0]], vec![[0, 0], [1, 0]]],
         };
         assert_eq!(
             wrap_mesh(&topology, None, None)?,
@@ -220,7 +220,7 @@ mod tests {
                     bbox: None,
                 },
             )]),
-            arcs: vec![vec![vec![2, 0], vec![3, 0]], vec![vec![0, 0], vec![1, 0]]],
+            arcs: vec![vec![[2, 0], [3, 0]], vec![[0, 0], [1, 0]]],
         };
         if let FeatureGeometryType::MultiLineString { coordinates } =
             wrap_mesh(&topology, None, None)?

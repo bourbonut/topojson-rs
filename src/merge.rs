@@ -219,9 +219,9 @@ mod tests {
                 },
             )]),
             arcs: vec![
-                vec![vec![1, 1], vec![1, 0]],
-                vec![vec![1, 0], vec![0, 0], vec![0, 1], vec![1, 1]],
-                vec![vec![1, 1], vec![2, 1], vec![2, 0], vec![1, 0]],
+                vec![[1, 1], [1, 0]],
+                vec![[1, 0], [0, 0], [0, 1], [1, 1]],
+                vec![[1, 1], [2, 1], [2, 0], [1, 0]],
             ],
         };
         if let GeometryType::GeometryCollection { geometries } =
@@ -289,8 +289,8 @@ mod tests {
                 },
             )]),
             arcs: vec![
-                vec![vec![0, 0], vec![0, 1], vec![1, 1], vec![1, 0], vec![0, 0]],
-                vec![vec![2, 0], vec![2, 1], vec![3, 1], vec![3, 0], vec![2, 0]],
+                vec![[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]],
+                vec![[2, 0], [2, 1], [3, 1], [3, 0], [2, 0]],
             ],
         };
         if let GeometryType::GeometryCollection { geometries } =
@@ -355,8 +355,8 @@ mod tests {
                 },
             )]),
             arcs: vec![
-                vec![vec![0, 0], vec![0, 3], vec![3, 3], vec![3, 0], vec![0, 0]],
-                vec![vec![1, 1], vec![2, 1], vec![2, 2], vec![1, 2], vec![1, 1]],
+                vec![[0, 0], [0, 3], [3, 3], [3, 0], [0, 0]],
+                vec![[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]],
             ],
         };
         if let GeometryType::GeometryCollection { geometries } =
@@ -418,11 +418,11 @@ mod tests {
                 },
             )]),
             arcs: vec![
-                vec![vec![3, 3], vec![3, 0]],
-                vec![vec![3, 0], vec![0, 0], vec![0, 3], vec![3, 3]],
-                vec![vec![1, 1], vec![2, 1], vec![2, 2], vec![1, 2], vec![1, 1]],
-                vec![vec![3, 3], vec![6, 3], vec![6, 0], vec![3, 0]],
-                vec![vec![4, 1], vec![5, 1], vec![5, 2], vec![4, 2], vec![4, 1]],
+                vec![[3, 3], [3, 0]],
+                vec![[3, 0], [0, 0], [0, 3], [3, 3]],
+                vec![[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]],
+                vec![[3, 3], [6, 3], [6, 0], [3, 0]],
+                vec![[4, 1], [5, 1], [5, 2], [4, 2], [4, 1]],
             ],
         };
         if let GeometryType::GeometryCollection { geometries } =
@@ -501,12 +501,12 @@ mod tests {
                 },
             )]),
             arcs: vec![
-                vec![vec![2, 3], vec![2, 2]],
-                vec![vec![2, 2], vec![1, 2], vec![1, 1], vec![2, 1]],
-                vec![vec![2, 1], vec![2, 0]],
-                vec![vec![2, 0], vec![0, 0], vec![0, 3], vec![2, 3]],
-                vec![vec![2, 1], vec![3, 1], vec![3, 2], vec![2, 2]],
-                vec![vec![2, 3], vec![4, 3], vec![4, 0], vec![2, 0]],
+                vec![[2, 3], [2, 2]],
+                vec![[2, 2], [1, 2], [1, 1], [2, 1]],
+                vec![[2, 1], [2, 0]],
+                vec![[2, 0], [0, 0], [0, 3], [2, 3]],
+                vec![[2, 1], [3, 1], [3, 2], [2, 2]],
+                vec![[2, 3], [4, 3], [4, 0], [2, 0]],
             ],
         };
         if let GeometryType::GeometryCollection { geometries } =
@@ -603,13 +603,13 @@ mod tests {
                 },
             )]),
             arcs: vec![
-                vec![vec![2, 3], vec![2, 2]],
-                vec![vec![2, 2], vec![1, 2], vec![1, 1], vec![2, 1]],
-                vec![vec![2, 1], vec![2, 0]],
-                vec![vec![2, 0], vec![0, 0], vec![0, 3], vec![2, 3]],
-                vec![vec![2, 1], vec![3, 1], vec![3, 2], vec![2, 2]],
-                vec![vec![2, 3], vec![4, 3], vec![4, 0], vec![2, 0]],
-                vec![vec![2, 2], vec![2, 1]],
+                vec![[2, 3], [2, 2]],
+                vec![[2, 2], [1, 2], [1, 1], [2, 1]],
+                vec![[2, 1], [2, 0]],
+                vec![[2, 0], [0, 0], [0, 3], [2, 3]],
+                vec![[2, 1], [3, 1], [3, 2], [2, 2]],
+                vec![[2, 3], [4, 3], [4, 0], [2, 0]],
+                vec![[2, 2], [2, 1]],
             ],
         };
         if let GeometryType::GeometryCollection { geometries } =

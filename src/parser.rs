@@ -71,12 +71,15 @@ fn transform(obj: &Object) -> Option<Transform> {
     }
 }
 
-fn arcs(obj: &Object) -> Vec<Vec<Vec<i32>>> {
+fn arcs(obj: &Object) -> Vec<Vec<[i32; 2]>> {
     if let Some(item) = obj.get("arcs") {
-        vec_from_item(item, |item| {
+        let vec = vec_from_item(item, |item| {
             vec_from_item(item, |item| vec_from_item(item, |item| item.as_i32()))
         })
-        .unwrap_or(Vec::new())
+        .unwrap_or(Vec::new());
+        vec.iter()
+            .map(|item| item.iter().map(|array| from_fn(|i| array[i])).collect())
+            .collect()
     } else {
         Vec::new()
     }
@@ -232,13 +235,7 @@ async fn test_parsing() -> Result<(), String> {
     };
     assert_eq!(
         topology.arcs,
-        vec![vec![
-            vec![0, 0],
-            vec![0, 9999],
-            vec![9999, 0],
-            vec![0, -9999],
-            vec![-9999, 0]
-        ]]
+        vec![vec![[0, 0], [0, 9999], [9999, 0], [0, -9999], [-9999, 0]]]
     );
     if let Some(object) = topology.objects.get("polygon") {
         assert!(object.bbox.is_none());

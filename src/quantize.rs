@@ -1,5 +1,3 @@
-use std::array::from_fn;
-
 use crate::bbox::bbox;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON, Transform};
 use crate::untransform::ScaleUntransformer;
@@ -116,10 +114,10 @@ impl Quantize {
         }
     }
 
-    fn quantize_arc(&mut self, input: &[Vec<i32>]) -> Vec<Vec<i32>> {
+    fn quantize_arc(&mut self, input: &[[i32; 2]]) -> Vec<[i32; 2]> {
         let mut untransform = |i: usize| {
             let arc = &input[i];
-            self.untransformer.call(&from_fn(|i| arc[i] as f64), i)
+            self.untransformer.call(&arc.map(|x| x as f64), i)
         };
 
         let mut output = vec![untransform(0)];
@@ -132,10 +130,7 @@ impl Quantize {
         if output.len() == 1 {
             output.push([0., 0.]);
         }
-        output
-            .iter()
-            .map(|array| array.map(|x| x as i32).to_vec())
-            .collect()
+        output.iter().map(|array| array.map(|x| x as i32)).collect()
     }
 }
 
