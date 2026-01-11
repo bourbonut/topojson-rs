@@ -41,24 +41,40 @@ def benchmark(name, py_func, rs_func):
 
     is_same = actual == expected
     print(
-        f"{name.title():>10}: ratio: {t1 / t2:.3f}, python: {t1:>6.3f} ms, rust: {t2:>6.3f} ms ({is_same})"
+        f"{name.title():>20}: ratio: {t1 / t2:.3f}, python: {t1:>6.3f} ms, rust: {t2:>6.3f} ms ({is_same})"
     )
 
 
-topology = load_counties()
-land = topology["objects"]["counties"]
+topology = load_land()
+obj = topology["objects"]["land"]
 benchmark(
-    "feature",
-    lambda: Feature()(topology, land),
-    lambda: topojson.feature(topology, land),
+    "feature land",
+    lambda: Feature()(topology, obj),
+    lambda: topojson.feature(topology, obj),
 )
 
 topology = load_counties()
-land = topology["objects"]["counties"]
+obj = topology["objects"]["counties"]
 benchmark(
-    "mesh",
-    lambda: Mesh()(topology, land),
-    lambda: topojson.mesh(topology, land, filter=None),
+    "feature counties",
+    lambda: Feature()(topology, obj),
+    lambda: topojson.feature(topology, obj),
+)
+
+topology = load_land()
+obj = topology["objects"]["land"]
+benchmark(
+    "mesh land",
+    lambda: Mesh()(topology, obj),
+    lambda: topojson.mesh(topology, obj, filter=None),
+)
+
+topology = load_counties()
+obj = topology["objects"]["counties"]
+benchmark(
+    "mesh counties",
+    lambda: Mesh()(topology, obj),
+    lambda: topojson.mesh(topology, obj, filter=None),
 )
 
 topology = load_counties()
@@ -77,9 +93,16 @@ benchmark(
     lambda: topojson.neighbors(objects),
 )
 
+topology = load_land()
+benchmark(
+    "bbox land",
+    lambda: BBox()(topology),
+    lambda: topojson.bbox(topology),
+)
+
 topology = load_counties()
 benchmark(
-    "bbox",
+    "bbox counties",
     lambda: BBox()(topology),
     lambda: topojson.bbox(topology),
 )
