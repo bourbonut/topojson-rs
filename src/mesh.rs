@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use pyo3::{
-    Bound,
+    Bound, PyResult,
     types::{PyAnyMethods, PyFunction},
 };
 
@@ -14,8 +14,11 @@ pub fn wrap_mesh(
     topology: &TopoJSON,
     object: Option<&Geometry>,
     filter: Option<&Bound<PyFunction>>,
-) -> FeatureGeometryType {
-    object_func(topology, &MeshArcs::call(topology, object, filter))
+) -> PyResult<FeatureGeometryType> {
+    Ok(object_func(
+        topology,
+        &MeshArcs::call(topology, object, filter)?,
+    ))
 }
 
 struct ArcItem<'a> {
@@ -41,43 +44,47 @@ impl<'a> MeshArcs<'a> {
         topology: &TopoJSON,
         object: Option<&'a Geometry>,
         filter: Option<&'a Bound<PyFunction>>,
-    ) -> Geometry {
+    ) -> PyResult<Geometry> {
         let arcs = match object {
-            Some(object) => MeshArcs::default().extract(object, filter),
+            Some(object) => MeshArcs::default().extract(object, filter)?,
             None => (0..topology.arcs.len()).map(|x| x as i32).collect(),
         };
-        Geometry {
+        Ok(Geometry {
             geometry: GeometryType::MultiLineString {
                 arcs: stitch(topology, arcs),
             },
             id: None,
             properties: None,
             bbox: None,
-        }
+        })
     }
 
-    fn extract(mut self, object: &'a Geometry, filter: Option<&'a Bound<PyFunction>>) -> Vec<i32> {
+    fn extract(
+        mut self,
+        object: &'a Geometry,
+        filter: Option<&'a Bound<PyFunction>>,
+    ) -> PyResult<Vec<i32>> {
         self.geometry(object);
 
         let geoms_by_arc =
             (0..=self.geoms_by_arc.max_index).filter_map(|k| self.geoms_by_arc.hmap.get(&k));
         match filter {
             Some(filter_func) => {
-                geoms_by_arc.for_each(|geoms| {
-                    if let Ok(result) =
-                        filter_func.call1((geoms[0].geometry, geoms.last().unwrap().geometry))
-                        && result.extract::<bool>().unwrap_or(false)
+                for geoms in geoms_by_arc {
+                    if filter_func
+                        .call1((geoms[0].geometry, geoms.last().unwrap().geometry))?
+                        .extract::<bool>()?
                     {
                         self.arcs.push(geoms[0].i);
                     }
-                });
+                }
             }
             None => geoms_by_arc.for_each(|geoms| {
                 self.arcs.push(geoms[0].i);
             }),
         };
 
-        self.arcs
+        Ok(self.arcs)
     }
 
     fn extract_0(&mut self, i: i32) {

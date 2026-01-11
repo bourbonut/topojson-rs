@@ -69,12 +69,30 @@ benchmark(
     lambda: topojson.mesh(topology, obj, filter=None),
 )
 
+
+def filter_func(a, b):
+    return a != b
+
+
+topology = load_states()
+obj = topology["objects"]["states"]
+benchmark(
+    "mesh states",
+    lambda: Mesh()(topology, obj, filt=filter_func),
+    lambda: topojson.mesh(topology, obj, filter=filter_func),
+)
+
+
+def filter_func(a, b):
+    return a != b and int(int(a["id"]) / 1000) == int(int(b["id"]) / 1000)
+
+
 topology = load_counties()
 obj = topology["objects"]["counties"]
 benchmark(
     "mesh counties",
-    lambda: Mesh()(topology, obj),
-    lambda: topojson.mesh(topology, obj, filter=None),
+    lambda: Mesh()(topology, obj, filt=filter_func),
+    lambda: topojson.mesh(topology, obj, filter=filter_func),
 )
 
 topology = load_counties()

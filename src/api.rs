@@ -36,7 +36,7 @@ pub fn mesh(
     filter: Option<&Bound<'_, PyFunction>>,
 ) -> PyResult<FeatureGeometryType> {
     let object: Option<Geometry> = object.map(|o| o.extract()).transpose()?;
-    Ok(wrap_mesh(&topology, object.as_ref(), filter))
+    wrap_mesh(&topology, object.as_ref(), filter)
 }
 
 #[pyfunction]
