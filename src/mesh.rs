@@ -4,7 +4,7 @@ use std::rc::Rc;
 use pyo3::types::{PyAnyMethods, PyFunction};
 use pyo3::{Bound, PyResult};
 
-use crate::feature::Object;
+use crate::feature::object_func;
 use crate::geojson_structs::FeatureGeometryType;
 use crate::stitch::stitch;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
@@ -14,7 +14,7 @@ pub fn wrap_mesh(
     object: Option<&Geometry>,
     filter: Option<&Bound<PyFunction>>,
 ) -> PyResult<FeatureGeometryType> {
-    Object::call(topology, &MeshArcs::call(topology, object, filter))
+    object_func(topology, &MeshArcs::call(topology, object, filter))
 }
 
 struct ArcItem<'a> {
@@ -185,7 +185,7 @@ mod tests {
         assert_eq!(
             wrap_mesh(&topology, None, None)?,
             FeatureGeometryType::MultiLineString {
-                coordinates: vec![vec![vec![0., 0.], vec![1., 0.], vec![2., 0.]]]
+                coordinates: vec![vec![[0., 0.], [1., 0.], [2., 0.]]]
             }
         );
         Ok(())
@@ -225,10 +225,7 @@ mod tests {
         if let FeatureGeometryType::MultiLineString { coordinates } =
             wrap_mesh(&topology, None, None)?
         {
-            for values in [
-                vec![vec![2., 0.], vec![3., 0.]],
-                vec![vec![0., 0.], vec![1., 0.]],
-            ] {
+            for values in [vec![[2., 0.], [3., 0.]], vec![[0., 0.], [1., 0.]]] {
                 assert!(coordinates.contains(&values));
             }
         } else {

@@ -4,16 +4,16 @@ use std::hash::{BuildHasher, RandomState};
 use pyo3::PyResult;
 use pyo3::exceptions::PyRuntimeError;
 
-use crate::feature::Object;
+use crate::feature::object_func;
 use crate::geojson_structs::FeatureGeometryType;
 use crate::stitch::stitch;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 
 pub fn wrap_merge(topology: &TopoJSON, objects: &Vec<Geometry>) -> PyResult<FeatureGeometryType> {
-    Object::call(topology, &MergeArcs::call(topology, objects)?)
+    object_func(topology, &MergeArcs::call(topology, objects)?)
 }
 
-fn planar_ring_area(ring: &Vec<Vec<f64>>) -> f64 {
+fn planar_ring_area(ring: &Vec<[f64; 2]>) -> f64 {
     let mut i = 0;
     let n = ring.len();
     let b = ring.last().unwrap();
@@ -138,7 +138,7 @@ impl<'a> MergeArcs<'a> {
     }
 
     fn area(&self, topology: &TopoJSON, ring: &Vec<i32>) -> PyResult<f64> {
-        if let FeatureGeometryType::Polygon { coordinates } = Object::call(
+        if let FeatureGeometryType::Polygon { coordinates } = object_func(
             topology,
             &Geometry {
                 geometry: GeometryType::Polygon {
@@ -232,13 +232,13 @@ mod tests {
                 merge,
                 FeatureGeometryType::MultiPolygon {
                     coordinates: vec![vec![vec![
-                        vec![1., 0.],
-                        vec![0., 0.],
-                        vec![0., 1.],
-                        vec![1., 1.],
-                        vec![2., 1.],
-                        vec![2., 0.],
-                        vec![1., 0.]
+                        [1., 0.],
+                        [0., 0.],
+                        [0., 1.],
+                        [1., 1.],
+                        [2., 1.],
+                        [2., 0.],
+                        [1., 0.]
                     ]]]
                 }
             );
@@ -301,20 +301,8 @@ mod tests {
                 merge,
                 FeatureGeometryType::MultiPolygon {
                     coordinates: vec![
-                        vec![vec![
-                            vec![0., 0.],
-                            vec![0., 1.],
-                            vec![1., 1.],
-                            vec![1., 0.],
-                            vec![0., 0.]
-                        ]],
-                        vec![vec![
-                            vec![2., 0.],
-                            vec![2., 1.],
-                            vec![3., 1.],
-                            vec![3., 0.],
-                            vec![2., 0.]
-                        ]]
+                        vec![vec![[0., 0.], [0., 1.], [1., 1.], [1., 0.], [0., 0.]]],
+                        vec![vec![[2., 0.], [2., 1.], [3., 1.], [3., 0.], [2., 0.]]]
                     ]
                 }
             );
@@ -378,13 +366,7 @@ mod tests {
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
-                    coordinates: vec![vec![vec![
-                        vec![0., 0.],
-                        vec![0., 3.],
-                        vec![3., 3.],
-                        vec![3., 0.],
-                        vec![0., 0.]
-                    ]]]
+                    coordinates: vec![vec![vec![[0., 0.], [0., 3.], [3., 3.], [3., 0.], [0., 0.]]]]
                 }
             );
         } else {
@@ -454,28 +436,16 @@ mod tests {
             {
                 for subpart in [
                     vec![
-                        vec![3., 0.],
-                        vec![0., 0.],
-                        vec![0., 3.],
-                        vec![3., 3.],
-                        vec![6., 3.],
-                        vec![6., 0.],
-                        vec![3., 0.],
+                        [3., 0.],
+                        [0., 0.],
+                        [0., 3.],
+                        [3., 3.],
+                        [6., 3.],
+                        [6., 0.],
+                        [3., 0.],
                     ],
-                    vec![
-                        vec![1., 1.],
-                        vec![2., 1.],
-                        vec![2., 2.],
-                        vec![1., 2.],
-                        vec![1., 1.],
-                    ],
-                    vec![
-                        vec![4., 1.],
-                        vec![5., 1.],
-                        vec![5., 2.],
-                        vec![4., 2.],
-                        vec![4., 1.],
-                    ],
+                    vec![[1., 1.], [2., 1.], [2., 2.], [1., 2.], [1., 1.]],
+                    vec![[4., 1.], [5., 1.], [5., 2.], [4., 2.], [4., 1.]],
                 ] {
                     assert!(coordinates[0].contains(&subpart));
                 }
@@ -548,22 +518,22 @@ mod tests {
                 FeatureGeometryType::MultiPolygon {
                     coordinates: vec![vec![
                         vec![
-                            vec![2., 0.],
-                            vec![0., 0.],
-                            vec![0., 3.],
-                            vec![2., 3.],
-                            vec![4., 3.],
-                            vec![4., 0.],
-                            vec![2., 0.]
+                            [2., 0.],
+                            [0., 0.],
+                            [0., 3.],
+                            [2., 3.],
+                            [4., 3.],
+                            [4., 0.],
+                            [2., 0.]
                         ],
                         vec![
-                            vec![2., 2.],
-                            vec![1., 2.],
-                            vec![1., 1.],
-                            vec![2., 1.],
-                            vec![3., 1.],
-                            vec![3., 2.],
-                            vec![2., 2.]
+                            [2., 2.],
+                            [1., 2.],
+                            [1., 1.],
+                            [2., 1.],
+                            [3., 1.],
+                            [3., 2.],
+                            [2., 2.]
                         ]
                     ]]
                 }
@@ -650,13 +620,13 @@ mod tests {
                 merge,
                 FeatureGeometryType::MultiPolygon {
                     coordinates: vec![vec![vec![
-                        vec![2., 0.],
-                        vec![0., 0.],
-                        vec![0., 3.],
-                        vec![2., 3.],
-                        vec![4., 3.],
-                        vec![4., 0.],
-                        vec![2., 0.]
+                        [2., 0.],
+                        [0., 0.],
+                        [0., 3.],
+                        [2., 3.],
+                        [4., 3.],
+                        [4., 0.],
+                        [2., 0.]
                     ]]]
                 }
             );

@@ -18,7 +18,7 @@ pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
     }
 }
 
-pub fn object(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
+pub fn object_func(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
     match &topology.transform {
         Some(transform) => Object::call(topology, o, ScaleTransformer::new(transform)),
         None => Object::call(topology, o, IdentityTransformer::new()),
@@ -26,7 +26,7 @@ pub fn object(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType
 }
 
 fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
-    let geometry = object(topology, &o)?;
+    let geometry = object_func(topology, &o)?;
     let id = o.id.clone();
     let bbox = o.bbox.clone();
     let properties = o.properties.clone();
