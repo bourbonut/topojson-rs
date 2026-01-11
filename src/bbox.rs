@@ -1,16 +1,20 @@
-use core::f64;
-
-use pyo3::PyResult;
+use std::array::from_fn;
 
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
-use crate::transform::transform;
+use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
-pub fn wrap_bbox(topology: &TopoJSON) -> PyResult<[f64; 4]> {
-    Ok(Bbox::call(topology)?)
+pub fn wrap_bbox(topology: &TopoJSON) -> [f64; 4] {
+    match &topology.transform {
+        Some(transform) => Bbox::call(topology, ScaleTransformer::new(transform)),
+        None => Bbox::call(topology, IdentityTransformer::new()),
+    }
 }
 
-pub struct Bbox {
-    transform: Box<dyn FnMut(&[f64], usize) -> Vec<f64>>,
+pub struct Bbox<T>
+where
+    T: Transformer,
+{
+    transformer: T,
     x0: f64,
     x1: f64,
     y0: f64,
@@ -18,44 +22,47 @@ pub struct Bbox {
     key: String,
 }
 
-impl Bbox {
-    fn new(topology: &TopoJSON) -> PyResult<Self> {
-        Ok(Self {
-            transform: transform(&topology.transform)?,
+impl<T: Transformer> Bbox<T> {
+    fn call(topology: &TopoJSON, transformer: T) -> [f64; 4] {
+        Bbox::new(transformer).bbox(topology)
+    }
+
+    fn new(transformer: T) -> Self {
+        Self {
+            transformer,
             x0: f64::INFINITY,
             x1: -f64::INFINITY,
             y0: f64::INFINITY,
             y1: -f64::INFINITY,
             key: String::new(),
-        })
+        }
     }
 
-    pub fn call(topology: &TopoJSON) -> PyResult<[f64; 4]> {
-        let mut bbox = Bbox::new(topology)?;
+    pub fn bbox(mut self, topology: &TopoJSON) -> [f64; 4] {
         topology.arcs.iter().for_each(|arc_vec| {
             for (i, arc) in arc_vec.iter().enumerate() {
-                let p = (bbox.transform)(&arc.iter().map(|&x| x as f64).collect::<Vec<f64>>(), i);
-                if p[0] < bbox.x0 {
-                    bbox.x0 = p[0];
+                let p = self.transformer.call(&from_fn(|i| arc[i] as f64), i);
+                if p[0] < self.x0 {
+                    self.x0 = p[0];
                 }
-                if p[0] > bbox.x1 {
-                    bbox.x1 = p[0];
+                if p[0] > self.x1 {
+                    self.x1 = p[0];
                 }
-                if p[1] < bbox.y0 {
-                    bbox.y0 = p[1];
+                if p[1] < self.y0 {
+                    self.y0 = p[1];
                 }
-                if p[1] > bbox.y1 {
-                    bbox.y1 = p[1];
+                if p[1] > self.y1 {
+                    self.y1 = p[1];
                 }
             }
         });
 
         topology.objects.iter().for_each(|(key, geometry)| {
-            bbox.key = key.to_string();
-            bbox.geometry(geometry);
+            self.key = key.to_string();
+            self.geometry(geometry);
         });
 
-        Ok([bbox.x0, bbox.y0, bbox.x1, bbox.y1])
+        [self.x0, self.y0, self.x1, self.y1]
     }
 
     fn geometry(&mut self, o: &Geometry) {
@@ -71,8 +78,8 @@ impl Bbox {
         }
     }
 
-    fn point(&mut self, p: &Vec<f64>) {
-        let p = (self.transform)(p, 0);
+    fn point(&mut self, p: &[f64; 2]) {
+        let p = self.transformer.call(p, 0);
         if p[0] < self.x0 {
             self.x0 = p[0];
         }
@@ -91,6 +98,7 @@ impl Bbox {
 #[cfg(test)]
 mod tests {
     use crate::parser::{json_parse, request};
+    use pyo3::prelude::PyResult;
     use std::collections::HashMap;
 
     use super::*;
@@ -105,7 +113,7 @@ mod tests {
             arcs: Vec::new(),
         };
         assert_eq!(
-            wrap_bbox(&topology)?,
+            wrap_bbox(&topology),
             [f64::INFINITY, f64::INFINITY, -f64::INFINITY, -f64::INFINITY]
         );
         Ok(())
@@ -116,11 +124,7 @@ mod tests {
         let topology = TopoJSON::try_from(json_parse(
             request("test/topojson/polygon-q1e4.json").await?,
         )?)?;
-        assert_eq!(
-            wrap_bbox(&topology)
-                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
-            [0., 0., 10., 10.]
-        );
+        assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
 
@@ -128,22 +132,14 @@ mod tests {
     async fn test_bbox_3() -> Result<(), String> {
         let topology =
             TopoJSON::try_from(json_parse(request("test/topojson/polygon.json").await?)?)?;
-        assert_eq!(
-            wrap_bbox(&topology)
-                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
-            [0., 0., 10., 10.]
-        );
+        assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_bbox_4() -> Result<(), String> {
         let topology = TopoJSON::try_from(json_parse(request("test/topojson/point.json").await?)?)?;
-        assert_eq!(
-            wrap_bbox(&topology)
-                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
-            [0., 0., 10., 10.]
-        );
+        assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
 
@@ -151,11 +147,7 @@ mod tests {
     async fn test_bbox_5() -> Result<(), String> {
         let topology =
             TopoJSON::try_from(json_parse(request("test/topojson/points.json").await?)?)?;
-        assert_eq!(
-            wrap_bbox(&topology)
-                .map_err(|e| format!("Error during bbox operation: {}", e.to_string()))?,
-            [0., 0., 10., 10.]
-        );
+        assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
 }

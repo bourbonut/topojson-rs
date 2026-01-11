@@ -1,8 +1,24 @@
 use crate::topojson_structs::Transform;
-use pyo3::exceptions::PyIndexError;
-use pyo3::prelude::*;
 
-struct Transformer {
+pub trait Transformer {
+    fn call(&mut self, input: &[f64; 2], i: usize) -> [f64; 2];
+}
+
+pub struct IdentityTransformer;
+
+impl IdentityTransformer {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Transformer for IdentityTransformer {
+    fn call(&mut self, input: &[f64; 2], _i: usize) -> [f64; 2] {
+        input.clone()
+    }
+}
+
+pub struct ScaleTransformer {
     x0: f64,
     y0: f64,
     kx: f64,
@@ -11,54 +27,30 @@ struct Transformer {
     dy: f64,
 }
 
-impl Transformer {
-    fn new(transform: &Transform) -> PyResult<Self> {
-        PyResult::Ok(Transformer {
+impl ScaleTransformer {
+    pub fn new(transform: &Transform) -> Self {
+        Self {
             x0: 0.,
             y0: 0.,
-            kx: *transform.scale.get(0).ok_or(PyIndexError::new_err(
-                "\"transform.scale\" must be a list with at least two floating numbers.",
-            ))?,
-            ky: *transform.scale.get(1).ok_or(PyIndexError::new_err(
-                "\"transform.scale\" must be a list with at least two floating numbers.",
-            ))?,
-            dx: *transform.translate.get(0).ok_or(PyIndexError::new_err(
-                "\"transform.translate\" must be a list with at least two floating numbers.",
-            ))?,
-            dy: *transform.translate.get(1).ok_or(PyIndexError::new_err(
-                "\"transform.translate\" must be a list with at least two floating numbers.",
-            ))?,
-        })
+            kx: transform.scale[0],
+            ky: transform.scale[1],
+            dx: transform.translate[0],
+            dy: transform.translate[1],
+        }
     }
 }
 
-impl Transformer {
-    fn call(&mut self, input: &[f64], i: usize) -> Vec<f64> {
+impl Transformer for ScaleTransformer {
+    fn call(&mut self, input: &[f64; 2], i: usize) -> [f64; 2] {
         if i == 0 {
             self.x0 = 0.;
             self.y0 = 0.;
         }
-        let mut output: Vec<f64> = input.iter().cloned().collect();
+        let mut output: [f64; 2] = input.clone();
         self.x0 += input.get(0).unwrap_or(&f64::NAN);
         self.y0 += input.get(1).unwrap_or(&f64::NAN);
         output[0] = self.x0 * self.kx + self.dx;
         output[1] = self.y0 * self.ky + self.dy;
         output
-    }
-}
-
-pub fn transform(
-    maybe_transform: &Option<Transform>,
-) -> PyResult<Box<dyn FnMut(&[f64], usize) -> Vec<f64>>> {
-    match maybe_transform {
-        Some(transform) => {
-            let mut transformer = Transformer::new(&transform)?;
-            Ok(Box::new(move |input: &[f64], i: usize| {
-                transformer.call(input, i)
-            }))
-        }
-        None => Ok(Box::new(|input: &[f64], _: usize| {
-            input.iter().cloned().collect::<Vec<f64>>()
-        })),
     }
 }

@@ -1,3 +1,4 @@
+use std::array::from_fn;
 use std::collections::HashMap;
 
 use crate::topojson_structs::{Geometry, GeometryType, Properties, TopoJSON, Transform};
@@ -23,7 +24,7 @@ pub fn json_parse(json_content: String) -> Result<JsonValue, String> {
         .map_err(|e| format!("Cannot parse the content through 'json': {}", e.to_string()))
 }
 
-fn array_from_item<T, F>(item: &JsonValue, f: F) -> Option<Vec<T>>
+fn vec_from_item<T, F>(item: &JsonValue, f: F) -> Option<Vec<T>>
 where
     F: FnMut(&JsonValue) -> Option<T>,
 {
@@ -34,12 +35,12 @@ where
     }
 }
 
-fn array_from_key<T, F>(obj: &Object, key: &str, f: F) -> Vec<T>
+fn vec_from_key<T, F>(obj: &Object, key: &str, f: F) -> Vec<T>
 where
     F: FnMut(&JsonValue) -> Option<T>,
 {
     if let Some(item) = obj.get(key) {
-        array_from_item(item, f).unwrap_or(Vec::new())
+        vec_from_item(item, f).unwrap_or(Vec::new())
     } else {
         Vec::new()
     }
@@ -54,14 +55,16 @@ fn value_from_key<'a>(
 }
 
 fn bbox(obj: &Object) -> Vec<f64> {
-    array_from_key(&obj, "bbox", |item| item.as_f64())
+    vec_from_key(&obj, "bbox", |item| item.as_f64())
 }
 
 fn transform(obj: &Object) -> Option<Transform> {
     if let Some(JsonValue::Object(transform)) = obj.get("transform") {
+        let scale_vec = vec_from_key(&transform, "scale", |item| item.as_f64());
+        let translate_vec = vec_from_key(&transform, "translate", |item| item.as_f64());
         Some(Transform {
-            scale: array_from_key(&transform, "scale", |item| item.as_f64()),
-            translate: array_from_key(&transform, "translate", |item| item.as_f64()),
+            scale: from_fn(|i| scale_vec[i]),
+            translate: from_fn(|i| translate_vec[i]),
         })
     } else {
         None
@@ -70,8 +73,8 @@ fn transform(obj: &Object) -> Option<Transform> {
 
 fn arcs(obj: &Object) -> Vec<Vec<Vec<i32>>> {
     if let Some(item) = obj.get("arcs") {
-        array_from_item(item, |item| {
-            array_from_item(item, |item| array_from_item(item, |item| item.as_i32()))
+        vec_from_item(item, |item| {
+            vec_from_item(item, |item| vec_from_item(item, |item| item.as_i32()))
         })
         .unwrap_or(Vec::new())
     } else {
@@ -110,30 +113,37 @@ fn geometry(value: &JsonValue) -> Result<Geometry, String> {
                 },
             },
             "Point" => GeometryType::Point {
-                coordinates: array_from_item(value_from_key(obj, "coordinates", value)?, |item| {
-                    item.as_f64()
-                })
-                .ok_or(format!("'Point' cannot be parsed (value = {:?})", value))?,
+                coordinates: {
+                    let vec = vec_from_item(value_from_key(obj, "coordinates", value)?, |item| {
+                        item.as_f64()
+                    })
+                    .ok_or(format!("'Point' cannot be parsed (value = {:?})", value))?;
+                    from_fn(|i| vec[i])
+                },
             },
             "MultiPoint" => GeometryType::MultiPoint {
-                coordinates: array_from_item(value_from_key(obj, "coordinates", value)?, |item| {
-                    array_from_item(item, |item| item.as_f64())
-                })
-                .ok_or(format!(
-                    "'MultiPoint' cannot be parsed (value = {:?})",
-                    value
-                ))?,
+                coordinates: {
+                    let vec_vec =
+                        vec_from_item(value_from_key(obj, "coordinates", value)?, |item| {
+                            vec_from_item(item, |item| item.as_f64())
+                        })
+                        .ok_or(format!(
+                            "'MultiPoint' cannot be parsed (value = {:?})",
+                            value
+                        ))?;
+                    vec_vec.into_iter().map(|vec| from_fn(|i| vec[i])).collect()
+                },
             },
             "LineString" => GeometryType::LineString {
-                arcs: array_from_item(value_from_key(obj, "arcs", value)?, |item| item.as_i32())
+                arcs: vec_from_item(value_from_key(obj, "arcs", value)?, |item| item.as_i32())
                     .ok_or(format!(
                         "'LineString' cannot be parsed (value = {:?})",
                         value
                     ))?,
             },
             "MultiLineString" => GeometryType::MultiLineString {
-                arcs: array_from_item(value_from_key(obj, "arcs", value)?, |item| {
-                    array_from_item(item, |item| item.as_i32())
+                arcs: vec_from_item(value_from_key(obj, "arcs", value)?, |item| {
+                    vec_from_item(item, |item| item.as_i32())
                 })
                 .ok_or(format!(
                     "'MultiLineString' cannot be parsed (value = {:?})",
@@ -141,14 +151,14 @@ fn geometry(value: &JsonValue) -> Result<Geometry, String> {
                 ))?,
             },
             "Polygon" => GeometryType::Polygon {
-                arcs: array_from_item(value_from_key(obj, "arcs", value)?, |item| {
-                    array_from_item(item, |item| item.as_i32())
+                arcs: vec_from_item(value_from_key(obj, "arcs", value)?, |item| {
+                    vec_from_item(item, |item| item.as_i32())
                 })
                 .ok_or(format!("'Polygon' cannot be parsed (value = {:?})", value))?,
             },
             "MultiPolygon" => GeometryType::MultiPolygon {
-                arcs: array_from_item(value_from_key(obj, "arcs", value)?, |item| {
-                    array_from_item(item, |item| array_from_item(item, |item| item.as_i32()))
+                arcs: vec_from_item(value_from_key(obj, "arcs", value)?, |item| {
+                    vec_from_item(item, |item| vec_from_item(item, |item| item.as_i32()))
                 })
                 .ok_or(format!(
                     "'MultiPolygon' cannot be parsed (value = {:?})",
@@ -162,7 +172,7 @@ fn geometry(value: &JsonValue) -> Result<Geometry, String> {
             .and_then(|id| id.as_str().map(|id| id.to_string()));
         let bbox = obj
             .get("bbox")
-            .and_then(|item| array_from_item(item, |item| item.as_f64()));
+            .and_then(|item| vec_from_item(item, |item| item.as_f64()));
         let properties = obj.get("properties").and_then(|item| {
             if let JsonValue::Object(properties) = item {
                 properties.get("name").and_then(|name| {
@@ -215,8 +225,8 @@ async fn test_parsing() -> Result<(), String> {
     let topology = TopoJSON::try_from(json_parse(json_content)?)?;
     assert_eq!(topology.bbox, vec![0., 0., 10., 10.]);
     if let Some(transform) = topology.transform {
-        assert_eq!(transform.scale, vec![0.001000100010001, 0.001000100010001]);
-        assert_eq!(transform.translate, vec![0., 0.],)
+        assert_eq!(transform.scale, [0.001000100010001, 0.001000100010001]);
+        assert_eq!(transform.translate, [0., 0.],)
     } else {
         panic!("'transform' is not defined.")
     };

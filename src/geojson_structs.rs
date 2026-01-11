@@ -75,22 +75,22 @@ pub enum FeatureGeometryType {
         geometries: Vec<FeatureGeometryType>,
     },
     Point {
-        coordinates: Vec<f64>,
+        coordinates: [f64; 2],
     },
     MultiPoint {
-        coordinates: Vec<Vec<f64>>,
+        coordinates: Vec<[f64; 2]>,
     },
     LineString {
-        coordinates: Vec<Vec<f64>>,
+        coordinates: Vec<[f64; 2]>,
     },
     MultiLineString {
-        coordinates: Vec<Vec<Vec<f64>>>,
+        coordinates: Vec<Vec<[f64; 2]>>,
     },
     Polygon {
-        coordinates: Vec<Vec<Vec<f64>>>,
+        coordinates: Vec<Vec<[f64; 2]>>,
     },
     MultiPolygon {
-        coordinates: Vec<Vec<Vec<Vec<f64>>>>,
+        coordinates: Vec<Vec<Vec<[f64; 2]>>>,
     },
 }
 

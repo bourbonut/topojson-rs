@@ -53,41 +53,41 @@ benchmark(
     lambda: topojson.feature(topology, land),
 )
 
-topology = load_land()
-land = topology["objects"]["land"]
-benchmark(
-    "mesh",
-    lambda: Mesh()(topology, land),
-    lambda: topojson.mesh(topology, land, filter=None),
-)
+# topology = load_land()
+# land = topology["objects"]["land"]
+# benchmark(
+#     "mesh",
+#     lambda: Mesh()(topology, land),
+#     lambda: topojson.mesh(topology, land, filter=None),
+# )
+#
+# topology = load_counties()
+# objects = topology["objects"]["counties"]["geometries"]
+# benchmark(
+#     "merge",
+#     lambda: Merge()(topology, objects),
+#     lambda: topojson.merge(topology, objects),
+# )
+#
+# topology = load_states()
+# objects = list(topology["objects"].values())
+# benchmark(
+#     "neighbors",
+#     lambda: Neighbors()(objects),
+#     lambda: topojson.neighbors(objects),
+# )
 
 topology = load_counties()
-objects = topology["objects"]["counties"]["geometries"]
-benchmark(
-    "merge",
-    lambda: Merge()(topology, objects),
-    lambda: topojson.merge(topology, objects),
-)
-
-topology = load_states()
-objects = list(topology["objects"].values())
-benchmark(
-    "neighbors",
-    lambda: Neighbors()(objects),
-    lambda: topojson.neighbors(objects),
-)
-
-topology = load_land()
 benchmark(
     "bbox",
     lambda: BBox()(topology),
     lambda: topojson.bbox(topology),
 )
 
-topology = load_land()
-topology.pop("transform")
-benchmark(
-    "quantize",
-    lambda: Quantize()(topology, transform=1e4),
-    lambda: topojson.quantize(topology, 1e4),
-)
+# topology = load_land()
+# topology.pop("transform")
+# benchmark(
+#     "quantize",
+#     lambda: Quantize()(topology, transform=1e4),
+#     lambda: topojson.quantize(topology, 1e4),
+# )

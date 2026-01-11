@@ -1,8 +1,9 @@
 use crate::geojson_structs::{Feature, FeatureCollection, FeatureGeometryType, FeatureItem};
 use crate::reverse::reverse;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
-use crate::transform::transform;
+use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 use pyo3::prelude::PyResult;
+use std::array::from_fn;
 
 pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
     match &o.geometry {
@@ -17,8 +18,15 @@ pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
     }
 }
 
+pub fn object(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
+    match &topology.transform {
+        Some(transform) => Object::call(topology, o, ScaleTransformer::new(transform)),
+        None => Object::call(topology, o, IdentityTransformer::new()),
+    }
+}
+
 fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
-    let geometry = Object::call(topology, &o)?;
+    let geometry = object(topology, &o)?;
     let id = o.id.clone();
     let bbox = o.bbox.clone();
     let properties = o.properties.clone();
@@ -30,30 +38,34 @@ fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
     })
 }
 
-pub struct Object<'a> {
+pub struct Object<'a, T>
+where
+    T: Transformer,
+{
     arcs: &'a Vec<Vec<Vec<i32>>>,
-    transform_point: Box<dyn FnMut(&[f64], usize) -> Vec<f64>>,
+    transformer: T,
 }
 
-impl<'a> Object<'a> {
-    pub fn call(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
+impl<'a, T: Transformer> Object<'a, T> {
+    pub fn call(
+        topology: &TopoJSON,
+        o: &Geometry,
+        transformer: T,
+    ) -> PyResult<FeatureGeometryType> {
         let mut object = Object {
             arcs: &topology.arcs,
-            transform_point: transform(&topology.transform)?,
+            transformer,
         };
         Ok(object.geometry(o))
     }
 
-    fn arc(&mut self, i: i32, points: &mut Vec<Vec<f64>>) {
+    fn arc(&mut self, i: i32, points: &mut Vec<[f64; 2]>) {
         if !points.is_empty() {
             points.pop();
         }
-        let a = &self.arcs[if i < 0 { !i as usize } else { i as usize }];
+        let a = &self.arcs[if i < 0 { !i } else { i } as usize];
         for (k, arc) in a.iter().enumerate() {
-            points.push((self.transform_point)(
-                &arc.iter().map(|&x| x as f64).collect::<Vec<f64>>(),
-                k,
-            ));
+            points.push(self.transformer.call(&from_fn(|i| arc[i] as f64), k));
         }
         if i < 0 {
             reverse(points, a.len());
@@ -61,11 +73,11 @@ impl<'a> Object<'a> {
     }
 
     #[inline]
-    fn point(&mut self, p: &[f64]) -> Vec<f64> {
-        (self.transform_point)(&p, 0)
+    fn point(&mut self, p: &[f64; 2]) -> [f64; 2] {
+        self.transformer.call(p, 0)
     }
 
-    fn line(&mut self, arcs: &[i32]) -> Vec<Vec<f64>> {
+    fn line(&mut self, arcs: &[i32]) -> Vec<[f64; 2]> {
         let mut points = Vec::new();
         for &arc in arcs {
             self.arc(arc, &mut points);
@@ -77,7 +89,7 @@ impl<'a> Object<'a> {
     }
 
     #[inline]
-    fn ring(&mut self, arcs: &[i32]) -> Vec<Vec<f64>> {
+    fn ring(&mut self, arcs: &[i32]) -> Vec<[f64; 2]> {
         let mut points = self.line(arcs);
         while points.len() < 4 {
             points.push(points[0].clone());
@@ -86,7 +98,7 @@ impl<'a> Object<'a> {
     }
 
     #[inline]
-    fn polygon(&mut self, arcs: &[Vec<i32>]) -> Vec<Vec<Vec<f64>>> {
+    fn polygon(&mut self, arcs: &[Vec<i32>]) -> Vec<Vec<[f64; 2]>> {
         arcs.iter().map(|arcs| self.ring(arcs)).collect()
     }
 
@@ -130,8 +142,8 @@ mod tests {
         TopoJSON {
             bbox: vec![],
             transform: Some(Transform {
-                scale: vec![1., 1.],
-                translate: vec![0., 0.],
+                scale: [1., 1.],
+                translate: [0., 0.],
             }),
             objects: HashMap::from_iter([("foo".to_string(), object)]),
             arcs: vec![
@@ -169,7 +181,7 @@ mod tests {
     fn test_feature_2() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Point {
-                coordinates: vec![0., 0.],
+                coordinates: [0., 0.],
             },
             id: None,
             properties: None,
@@ -181,7 +193,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::Point {
-                    coordinates: vec![0., 0.]
+                    coordinates: [0., 0.]
                 },
                 id: None,
                 bbox: None
@@ -194,7 +206,7 @@ mod tests {
     fn test_feature_3() -> PyResult<()> {
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiPoint {
-                coordinates: vec![vec![0., 0.]],
+                coordinates: vec![[0., 0.]],
             },
             id: None,
             properties: None,
@@ -206,7 +218,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiPoint {
-                    coordinates: vec![vec![0., 0.]]
+                    coordinates: vec![[0., 0.]]
                 },
                 id: None,
                 bbox: None
@@ -229,13 +241,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
-                    coordinates: vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]
+                    coordinates: vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]
                 },
                 id: None,
                 bbox: None
@@ -260,13 +266,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiLineString {
-                    coordinates: vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]
+                    coordinates: vec![vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]]
                 },
                 id: None,
                 bbox: None
@@ -289,7 +289,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
-                    coordinates: vec![vec![1., 1.], vec![1., 1.],]
+                    coordinates: vec![[1., 1.], [1., 1.]]
                 },
                 id: None,
                 bbox: None
@@ -310,10 +310,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiLineString {
-                    coordinates: vec![
-                        vec![vec![1., 1.], vec![1., 1.],],
-                        vec![vec![0., 0.], vec![0., 0.],]
-                    ]
+                    coordinates: vec![vec![[1., 1.], [1., 1.]], vec![[0., 0.], [0., 0.]]]
                 },
                 id: None,
                 bbox: None
@@ -338,13 +335,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::Polygon {
-                    coordinates: vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]
+                    coordinates: vec![vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]]
                 },
                 id: None,
                 bbox: None
@@ -369,13 +360,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::MultiPolygon {
-                    coordinates: vec![vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]]
+                    coordinates: vec![vec![vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]]]
                 },
                 id: None,
                 bbox: None
@@ -389,8 +374,8 @@ mod tests {
         let topology = TopoJSON {
             bbox: vec![],
             transform: Some(Transform {
-                scale: vec![1., 1.],
-                translate: vec![0., 0.],
+                scale: [1., 1.],
+                translate: [0., 0.],
             }),
             objects: HashMap::from_iter([
                 (
@@ -423,7 +408,7 @@ mod tests {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![vec![0., 0.], vec![1., 1.], vec![0., 0.], vec![0., 0.]]]
+                    vec![vec![[0., 0.], [1., 1.], [0., 0.], [0., 0.]]]
                 );
             } else {
                 panic!("FeatureGeometryType of 'foo' must be variant of 'Polygon'.")
@@ -436,7 +421,7 @@ mod tests {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![vec![0., 0.], vec![1., 1.], vec![0., 0.], vec![0., 0.]]]
+                    vec![vec![[0., 0.], [1., 1.], [0., 0.], [0., 0.]]]
                 );
             } else {
                 panic!("FeatureGeometryType of 'bar' must be variant of 'Polygon'.")
@@ -473,11 +458,11 @@ mod tests {
                     properties: None,
                     geometry: FeatureGeometryType::MultiPolygon {
                         coordinates: vec![vec![vec![
-                            vec![0., 0.],
-                            vec![1., 0.],
-                            vec![1., 1.],
-                            vec![0., 1.],
-                            vec![0., 0.]
+                            [0., 0.],
+                            [1., 0.],
+                            [1., 1.],
+                            [0., 1.],
+                            [0., 0.]
                         ]]]
                     },
                     id: None,
@@ -494,7 +479,7 @@ mod tests {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
                     geometry: GeometryType::Point {
-                        coordinates: vec![0., 0.],
+                        coordinates: [0., 0.],
                     },
                     id: None,
                     properties: None,
@@ -512,7 +497,7 @@ mod tests {
                 features: vec![FeatureItem {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
-                        coordinates: vec![0., 0.]
+                        coordinates: [0., 0.]
                     },
                     id: None,
                     bbox: None
@@ -528,7 +513,7 @@ mod tests {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
                     geometry: GeometryType::Point {
-                        coordinates: vec![0., 0.],
+                        coordinates: [0., 0.],
                     },
                     id: Some("feature".to_string()),
                     properties: None,
@@ -546,7 +531,7 @@ mod tests {
                 features: vec![FeatureItem {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
-                        coordinates: vec![0., 0.]
+                        coordinates: [0., 0.]
                     },
                     id: Some("feature".to_string()),
                     bbox: None
@@ -562,7 +547,7 @@ mod tests {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
                     geometry: GeometryType::Point {
-                        coordinates: vec![0., 0.],
+                        coordinates: [0., 0.],
                     },
                     id: None,
                     properties: Some(Properties {
@@ -586,7 +571,7 @@ mod tests {
                         name: "feature".to_string()
                     }),
                     geometry: FeatureGeometryType::Point {
-                        coordinates: vec![0., 0.]
+                        coordinates: [0., 0.]
                     },
                     id: None,
                     bbox: None
@@ -672,13 +657,7 @@ mod tests {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]]
+                    vec![vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]]
                 );
             } else {
                 panic!("Feature Geometry Type must be variant of 'Polygon'.")
@@ -703,13 +682,7 @@ mod tests {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
-                    vec![vec![
-                        vec![0., 0.],
-                        vec![0., 1.],
-                        vec![1., 1.],
-                        vec![1., 0.],
-                        vec![0., 0.]
-                    ]]
+                    vec![vec![[0., 0.], [0., 1.], [1., 1.], [1., 0.], [0., 0.]]]
                 );
             } else {
                 panic!("Feature Geometry Type must be variant of 'Polygon'.")
@@ -734,13 +707,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
-                    coordinates: vec![
-                        vec![0., 0.],
-                        vec![1., 0.],
-                        vec![1., 1.],
-                        vec![0., 1.],
-                        vec![0., 0.]
-                    ]
+                    coordinates: vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]
                 },
                 id: None,
                 bbox: None
@@ -761,13 +728,7 @@ mod tests {
             Feature::Item(FeatureItem {
                 properties: None,
                 geometry: FeatureGeometryType::Polygon {
-                    coordinates: vec![vec![
-                        vec![0., 0.],
-                        vec![0., 1.],
-                        vec![1., 1.],
-                        vec![1., 0.],
-                        vec![0., 0.]
-                    ]]
+                    coordinates: vec![vec![[0., 0.], [0., 1.], [1., 1.], [1., 0.], [0., 0.]]]
                 },
                 id: None,
                 bbox: None

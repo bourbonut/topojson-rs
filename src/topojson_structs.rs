@@ -70,8 +70,8 @@ impl<'py> IntoPyObject<'py> for TopoJSON {
 
 #[derive(Debug, PartialEq)]
 pub struct Transform {
-    pub scale: Vec<f64>,
-    pub translate: Vec<f64>,
+    pub scale: [f64; 2],
+    pub translate: [f64; 2],
 }
 
 impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
@@ -94,8 +94,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Transform {
 #[derive(Debug, Clone, PartialEq)]
 pub enum GeometryType {
     GeometryCollection { geometries: Vec<Geometry> },
-    Point { coordinates: Vec<f64> },
-    MultiPoint { coordinates: Vec<Vec<f64>> },
+    Point { coordinates: [f64; 2] },
+    MultiPoint { coordinates: Vec<[f64; 2]> },
     LineString { arcs: Vec<i32> },
     MultiLineString { arcs: Vec<Vec<i32>> },
     Polygon { arcs: Vec<Vec<i32>> },
