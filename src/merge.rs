@@ -147,7 +147,7 @@ impl<'a> MergeArcs<'a> {
                 let arc = if arc < 0 { !arc } else { arc } as usize;
                 self.polygons_by_arcs
                     .entry(arc)
-                    .and_modify(|polygons: &mut Vec<&'a Vec<Vec<i32>>>| polygons.push(polygon))
+                    .and_modify(|polygons| polygons.push(polygon))
                     .or_insert(vec![polygon]);
             });
         });

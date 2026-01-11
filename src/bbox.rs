@@ -23,7 +23,6 @@ where
     x1: f64,
     y0: f64,
     y1: f64,
-    key: String,
 }
 
 impl<T: Transformer> Bbox<T> {
@@ -38,7 +37,6 @@ impl<T: Transformer> Bbox<T> {
             x1: -f64::INFINITY,
             y0: f64::INFINITY,
             y1: -f64::INFINITY,
-            key: String::new(),
         }
     }
 
@@ -61,8 +59,7 @@ impl<T: Transformer> Bbox<T> {
             }
         });
 
-        topology.objects.iter().for_each(|(key, geometry)| {
-            self.key = key.to_string();
+        topology.objects.values().for_each(|geometry| {
             self.geometry(geometry);
         });
 
