@@ -4,6 +4,10 @@ use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
 pub fn wrap_bbox(topology: &TopoJSON) -> [f64; 4] {
+    bbox(topology)
+}
+
+pub fn bbox(topology: &TopoJSON) -> [f64; 4] {
     match &topology.transform {
         Some(transform) => Bbox::call(topology, ScaleTransformer::new(transform)),
         None => Bbox::call(topology, IdentityTransformer::new()),

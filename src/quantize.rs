@@ -1,6 +1,8 @@
-use crate::bbox::Bbox;
+use std::array::from_fn;
+
+use crate::bbox::bbox;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON, Transform};
-use crate::untransform::untransform;
+use crate::untransform::ScaleUntransformer;
 
 use pyo3::PyResult;
 use pyo3::exceptions::PyRuntimeError;
@@ -12,7 +14,7 @@ pub fn wrap_quantize(topology: &TopoJSON, transform: &f64) -> PyResult<TopoJSON>
 struct Quantize {
     r#box: Vec<f64>,
     transform: Option<Transform>,
-    untransform: Box<dyn FnMut(&[f64], usize) -> Vec<i32>>,
+    untransformer: ScaleUntransformer,
 }
 
 impl Quantize {
@@ -49,7 +51,7 @@ impl Quantize {
             return Err(PyRuntimeError::new_err("n must be larger than 2"));
         }
         let r#box = if topology.bbox.is_empty() {
-            Bbox::call(topology)?.to_vec()
+            bbox(topology).to_vec()
         } else {
             topology.bbox.to_vec()
         };
@@ -58,8 +60,8 @@ impl Quantize {
         let x1 = r#box[2];
         let y1 = r#box[3];
 
-        let transform = Some(Transform {
-            scale: vec![
+        let transform = Transform {
+            scale: [
                 if x1 - x0 != 0. {
                     (x1 - x0) / (n - 1.)
                 } else {
@@ -71,19 +73,19 @@ impl Quantize {
                     1.
                 },
             ],
-            translate: vec![x0, y0],
-        });
+            translate: [x0, y0],
+        };
+        let untransformer = ScaleUntransformer::new(&transform);
 
-        let untransform = untransform(&transform)?;
         Ok(Self {
             r#box,
-            transform,
-            untransform,
+            transform: Some(transform),
+            untransformer,
         })
     }
 
-    fn quantize_point(&mut self, point: &[f64]) -> Vec<i32> {
-        (self.untransform)(point, 0)
+    fn quantize_point(&mut self, point: &[f64; 2]) -> [f64; 2] {
+        self.untransformer.call(point, 0)
     }
 
     fn quantize_geometry(&mut self, input: &Geometry) -> Geometry {
@@ -95,21 +97,12 @@ impl Quantize {
                     .collect(),
             },
             GeometryType::Point { coordinates } => GeometryType::Point {
-                coordinates: self
-                    .quantize_point(coordinates)
-                    .iter()
-                    .map(|&x| x as f64)
-                    .collect(),
+                coordinates: self.quantize_point(coordinates),
             },
             GeometryType::MultiPoint { coordinates } => GeometryType::MultiPoint {
                 coordinates: coordinates
                     .iter()
-                    .map(|point| {
-                        self.quantize_point(point)
-                            .iter()
-                            .map(|&x| x as f64)
-                            .collect()
-                    })
+                    .map(|point| self.quantize_point(point))
                     .collect(),
             },
             _ => return input.clone(),
@@ -125,20 +118,24 @@ impl Quantize {
 
     fn quantize_arc(&mut self, input: &[Vec<i32>]) -> Vec<Vec<i32>> {
         let mut untransform = |i: usize| {
-            (self.untransform)(&input[i].iter().map(|&x| x as f64).collect::<Vec<f64>>(), i)
+            let arc = &input[i];
+            self.untransformer.call(&from_fn(|i| arc[i] as f64), i)
         };
 
         let mut output = vec![untransform(0)];
         for i in 1..input.len() {
             let p = untransform(i);
-            if p[0] != 0 || p[1] != 0 {
+            if p[0] != 0. || p[1] != 0. {
                 output.push(p);
             }
         }
         if output.len() == 1 {
-            output.push(vec![0, 0]);
+            output.push([0., 0.]);
         }
         output
+            .iter()
+            .map(|array| array.map(|x| x as i32).to_vec())
+            .collect()
     }
 }
 

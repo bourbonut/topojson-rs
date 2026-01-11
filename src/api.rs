@@ -3,8 +3,8 @@ use crate::feature::wrap_feature;
 use crate::geojson_structs::{Feature, FeatureGeometryType};
 // use crate::merge::wrap_merge;
 // use crate::mesh::wrap_mesh;
-// use crate::neighbors::wrap_neighbors;
-// use crate::quantize::wrap_quantize;
+use crate::neighbors::wrap_neighbors;
+use crate::quantize::wrap_quantize;
 use crate::topojson_structs::{Geometry, TopoJSON};
 use pyo3::{
     prelude::*,
@@ -44,12 +44,12 @@ pub fn bbox(topology: TopoJSON) -> [f64; 4] {
     wrap_bbox(&topology)
 }
 
-// #[pyfunction]
-// pub fn neighbors(objects: Vec<Geometry>) -> PyResult<Vec<Vec<i32>>> {
-//     Ok(wrap_neighbors(&objects))
-// }
-//
-// #[pyfunction]
-// pub fn quantize(topology: TopoJSON, transform: f64) -> PyResult<TopoJSON> {
-//     Ok(wrap_quantize(&topology, &transform)?)
-// }
+#[pyfunction]
+pub fn neighbors(objects: Vec<Geometry>) -> PyResult<Vec<Vec<i32>>> {
+    Ok(wrap_neighbors(&objects))
+}
+
+#[pyfunction]
+pub fn quantize(topology: TopoJSON, transform: f64) -> PyResult<TopoJSON> {
+    Ok(wrap_quantize(&topology, &transform)?)
+}
