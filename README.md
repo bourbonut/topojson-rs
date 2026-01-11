@@ -2,7 +2,7 @@
 
 Implementation of [`topojson-client`](https://github.com/topojson/topojson-client) in Rust for creating native Python extension.
 
-I don't want to distribute it the library on Pypi because I don't think it is yet ready for production due to some potential performance improvements to make and non-polished API. However if you want to test it, you can follow the manual instructions.
+I don't want to distribute the library on Pypi because I don't think it is yet ready for production due to some potential performance improvements to make and non-polished API. However if you want to test it, you can follow the manual instructions.
 
 ## Manual installation
 
