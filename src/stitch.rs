@@ -35,8 +35,8 @@ trait AddFragments {
 impl AddFragments for Rc<RefCell<Fragment>> {
     fn add_fragment(&self, other: &Rc<RefCell<Fragment>>) -> Rc<RefCell<Fragment>> {
         Rc::new(RefCell::new(Fragment {
-            start: self.borrow().start.clone(),
-            end: other.borrow().end.clone(),
+            start: self.borrow().start,
+            end: other.borrow().end,
             arcs: [&self.borrow().arcs[..], &other.borrow().arcs[..]].concat(),
         }))
     }
@@ -96,7 +96,7 @@ impl Stitch {
                 arc.len() < 3 && arc[1][0] == 0 && arc[1][1] == 0
             })
             .map(|(j, &i)| {
-                let r = (j, empty_index.clone(), i);
+                let r = (j, empty_index, i);
                 empty_index += 1;
                 r
             })
@@ -109,13 +109,13 @@ impl Stitch {
         }
 
         for i in arcs.iter() {
-            let (start, end) = self.ends(&topology, i);
+            let (start, end) = self.ends(topology, i);
 
             if let Some(f) = self.fragment_by_end.get(&start).cloned() {
                 self.fragment_by_end.shift_remove(&f.borrow().end);
                 {
                     f.borrow_mut().push(*i);
-                    f.borrow_mut().end = end.clone();
+                    f.borrow_mut().end = end;
                 }
 
                 if let Some(g) = self.fragment_by_start.get(&end).cloned() {
@@ -136,7 +136,7 @@ impl Stitch {
                 self.fragment_by_start.shift_remove(&f.borrow().start);
                 {
                     f.borrow_mut().unshift(*i);
-                    f.borrow_mut().start = start.clone();
+                    f.borrow_mut().start = start;
                 }
 
                 if let Some(g) = self.fragment_by_end.get(&start).cloned() {

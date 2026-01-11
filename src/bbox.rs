@@ -71,7 +71,7 @@ impl<T: Transformer> Bbox<T> {
             GeometryType::GeometryCollection { geometries } => {
                 geometries.iter().for_each(|o| self.geometry(o))
             }
-            GeometryType::Point { coordinates } => self.point(&coordinates),
+            GeometryType::Point { coordinates } => self.point(coordinates),
             GeometryType::MultiPoint { coordinates } => {
                 coordinates.iter().for_each(|p| self.point(p))
             }

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::bisect::bisect;
 use crate::topojson_structs::{Geometry, GeometryType};
 
-pub fn wrap_neighbors(objects: &Vec<Geometry>) -> Vec<Vec<i32>> {
+pub fn wrap_neighbors(objects: &[Geometry]) -> Vec<Vec<i32>> {
     Neighbors::call(objects)
 }
 
@@ -13,11 +13,11 @@ struct Neighbors {
 }
 
 impl Neighbors {
-    fn call(objects: &Vec<Geometry>) -> Vec<Vec<i32>> {
-        Neighbors::new(objects).neighbors(objects)
+    fn call(objects: &[Geometry]) -> Vec<Vec<i32>> {
+        Neighbors::new(objects.len()).neighbors(objects)
     }
 
-    fn neighbors(mut self, objects: &Vec<Geometry>) -> Vec<Vec<i32>> {
+    fn neighbors(mut self, objects: &[Geometry]) -> Vec<Vec<i32>> {
         objects
             .iter()
             .enumerate()
@@ -52,10 +52,10 @@ impl Neighbors {
         self.neighbors
     }
 
-    fn new(objects: &Vec<Geometry>) -> Self {
+    fn new(len_objects: usize) -> Self {
         Self {
             indexes_by_arc: HashMap::new(),
-            neighbors: vec![Vec::new(); objects.len()],
+            neighbors: vec![Vec::new(); len_objects],
         }
     }
 
@@ -103,7 +103,7 @@ mod tests {
     //
     #[test]
     fn test_neighbors_2() {
-        let objects = [vec![0], vec![1]]
+        let objects: Vec<Geometry> = [vec![0], vec![1]]
             .map(|arcs| Geometry {
                 geometry: GeometryType::LineString { arcs },
                 id: None,
@@ -120,7 +120,7 @@ mod tests {
     //
     #[test]
     fn test_neighbors_3() {
-        let objects = [vec![0, 1], vec![1, 2]]
+        let objects: Vec<Geometry> = [vec![0, 1], vec![1, 2]]
             .map(|arcs| Geometry {
                 geometry: GeometryType::LineString { arcs },
                 id: None,
@@ -137,7 +137,7 @@ mod tests {
     //
     #[test]
     fn test_neighbors_4() {
-        let objects = [vec![0, 1], vec![2, -2]]
+        let objects: Vec<Geometry> = [vec![0, 1], vec![2, -2]]
             .map(|arcs| Geometry {
                 geometry: GeometryType::LineString { arcs },
                 id: None,
@@ -154,7 +154,7 @@ mod tests {
     //
     #[test]
     fn test_neighbors_5() {
-        let objects = [
+        let objects: Vec<Geometry> = [
             vec![0, 1, 2],
             vec![1, 2, 3],
             vec![2, 3, 4],
@@ -194,7 +194,7 @@ mod tests {
     //
     #[test]
     fn test_neighbors_6() {
-        let objects = [vec![vec![0, 1]], vec![vec![2, -1]], vec![vec![3]]]
+        let objects: Vec<Geometry> = [vec![vec![0, 1]], vec![vec![2, -1]], vec![vec![3]]]
             .map(|arcs| Geometry {
                 geometry: GeometryType::Polygon { arcs },
                 id: None,
@@ -220,7 +220,7 @@ mod tests {
     //
     #[test]
     fn test_neighbors_7() {
-        let objects = [vec![vec![0, 1, 2, 3]], vec![vec![4, -3, 5, -1]]]
+        let objects: Vec<Geometry> = [vec![vec![0, 1, 2, 3]], vec![vec![4, -3, 5, -1]]]
             .map(|arcs| Geometry {
                 geometry: GeometryType::Polygon { arcs },
                 id: None,

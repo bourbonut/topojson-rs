@@ -14,7 +14,7 @@ impl IdentityTransformer {
 
 impl Transformer for IdentityTransformer {
     fn call(&mut self, input: &[f64; 2], _i: usize) -> [f64; 2] {
-        input.clone()
+        *input
     }
 }
 
@@ -46,8 +46,8 @@ impl Transformer for ScaleTransformer {
             self.x0 = 0.;
             self.y0 = 0.;
         }
-        let mut output: [f64; 2] = input.clone();
-        self.x0 += input.get(0).unwrap_or(&f64::NAN);
+        let mut output: [f64; 2] = *input;
+        self.x0 += input.first().unwrap_or(&f64::NAN);
         self.y0 += input.get(1).unwrap_or(&f64::NAN);
         output[0] = self.x0 * self.kx + self.dx;
         output[1] = self.y0 * self.ky + self.dy;

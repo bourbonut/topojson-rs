@@ -7,12 +7,12 @@ pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> Feature {
     match &o.geometry {
         GeometryType::GeometryCollection { geometries } => {
             let features: Vec<FeatureItem> = geometries
-                .into_iter()
-                .map(|o| feature_item(&topology, &o))
+                .iter()
+                .map(|o| feature_item(topology, o))
                 .collect();
             Feature::Collection(FeatureCollection { features })
         }
-        _ => Feature::Item(feature_item(&topology, o)),
+        _ => Feature::Item(feature_item(topology, o)),
     }
 }
 
@@ -24,7 +24,7 @@ pub fn object_func(topology: &TopoJSON, o: &Geometry) -> FeatureGeometryType {
 }
 
 fn feature_item(topology: &TopoJSON, o: &Geometry) -> FeatureItem {
-    let geometry = object_func(topology, &o);
+    let geometry = object_func(topology, o);
     let id = o.id.clone();
     let bbox = o.bbox.clone();
     let properties = o.properties.clone();
@@ -77,7 +77,7 @@ impl<'a, T: Transformer> Object<'a, T> {
             self.arc(arc, &mut points);
         }
         if points.len() < 2 {
-            points.push(points[0].clone());
+            points.push(points[0]);
         }
         points
     }
@@ -86,7 +86,7 @@ impl<'a, T: Transformer> Object<'a, T> {
     fn ring(&mut self, arcs: &[i32]) -> Vec<[f64; 2]> {
         let mut points = self.line(arcs);
         while points.len() < 4 {
-            points.push(points[0].clone());
+            points.push(points[0]);
         }
         points
     }
@@ -99,9 +99,9 @@ impl<'a, T: Transformer> Object<'a, T> {
     fn geometry(&mut self, o: &Geometry) -> FeatureGeometryType {
         match &o.geometry {
             GeometryType::GeometryCollection { geometries } => {
-                return FeatureGeometryType::GeometryCollection {
+                FeatureGeometryType::GeometryCollection {
                     geometries: geometries.iter().map(|o| self.geometry(o)).collect(),
-                };
+                }
             }
             GeometryType::Point { coordinates } => FeatureGeometryType::Point {
                 coordinates: self.point(coordinates),

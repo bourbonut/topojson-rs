@@ -28,7 +28,7 @@ impl ScaleUntransformer {
             self.x0 = 0.;
             self.y0 = 0.;
         }
-        let x1 = ((input.get(0).unwrap_or(&f64::NAN) - self.dx) / self.kx + 0.5).floor();
+        let x1 = ((input.first().unwrap_or(&f64::NAN) - self.dx) / self.kx + 0.5).floor();
         let y1 = ((input.get(1).unwrap_or(&f64::NAN) - self.dy) / self.ky + 0.5).floor();
         let output = [x1 - self.x0, y1 - self.y0];
         self.x0 = x1;

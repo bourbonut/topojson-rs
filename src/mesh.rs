@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use pyo3::{
     Bound,
@@ -21,7 +20,7 @@ pub fn wrap_mesh(
 
 struct ArcItem<'a> {
     i: i32,
-    geometry: Rc<&'a Geometry>,
+    geometry: &'a Geometry,
 }
 
 #[derive(Default)]
@@ -34,7 +33,7 @@ struct GeometryByArcs<'a> {
 struct MeshArcs<'a> {
     arcs: Vec<i32>,
     geoms_by_arc: GeometryByArcs<'a>,
-    geom: Option<Rc<&'a Geometry>>,
+    geom: Option<&'a Geometry>,
 }
 
 impl<'a> MeshArcs<'a> {
@@ -65,16 +64,11 @@ impl<'a> MeshArcs<'a> {
         match filter {
             Some(filter_func) => {
                 geoms_by_arc.for_each(|geoms| {
-                    match filter_func.call1((
-                        geoms[0].geometry.as_ref(),
-                        geoms.last().unwrap().geometry.as_ref(),
-                    )) {
-                        Ok(result) => {
-                            if result.extract::<bool>().unwrap_or(false) {
-                                self.arcs.push(geoms[0].i);
-                            }
-                        }
-                        Err(_) => (),
+                    if let Ok(result) =
+                        filter_func.call1((geoms[0].geometry, geoms.last().unwrap().geometry))
+                        && result.extract::<bool>().unwrap_or(false)
+                    {
+                        self.arcs.push(geoms[0].i);
                     }
                 });
             }
@@ -88,20 +82,12 @@ impl<'a> MeshArcs<'a> {
 
     fn extract_0(&mut self, i: i32) {
         let j = if i < 0 { !i } else { i } as usize;
-        let geom = self.geom.clone().expect("Undefined 'geom' during runtime");
+        let geom = self.geom.expect("Undefined 'geom' during runtime");
         self.geoms_by_arc
             .hmap
             .entry(j)
-            .and_modify(|vec| {
-                vec.push(ArcItem {
-                    i,
-                    geometry: geom.clone(),
-                })
-            })
-            .or_insert(vec![ArcItem {
-                i,
-                geometry: geom.clone(),
-            }]);
+            .and_modify(|vec| vec.push(ArcItem { i, geometry: geom }))
+            .or_insert(vec![ArcItem { i, geometry: geom }]);
         self.geoms_by_arc.max_index = self.geoms_by_arc.max_index.max(j)
     }
 
@@ -118,7 +104,7 @@ impl<'a> MeshArcs<'a> {
     }
 
     fn geometry(&mut self, o: &'a Geometry) {
-        self.geom = Some(Rc::new(o));
+        self.geom = Some(o);
         match &o.geometry {
             GeometryType::GeometryCollection { geometries } => {
                 geometries.iter().for_each(|o| self.geometry(o))

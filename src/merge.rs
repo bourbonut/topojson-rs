@@ -7,11 +7,11 @@ use crate::geojson_structs::FeatureGeometryType;
 use crate::stitch::stitch;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 
-pub fn wrap_merge(topology: &TopoJSON, objects: &Vec<Geometry>) -> FeatureGeometryType {
+pub fn wrap_merge(topology: &TopoJSON, objects: &[Geometry]) -> FeatureGeometryType {
     object_func(topology, &MergeArcs::call(topology, objects))
 }
 
-fn planar_ring_area(ring: &Vec<[f64; 2]>) -> f64 {
+fn planar_ring_area(ring: &[[f64; 2]]) -> f64 {
     let mut i = 0;
     let n = ring.len();
     let b = ring.last().unwrap();
@@ -25,7 +25,7 @@ fn planar_ring_area(ring: &Vec<[f64; 2]>) -> f64 {
     area.abs()
 }
 
-fn area(topology: &TopoJSON, ring: &Vec<i32>) -> f64 {
+fn area(topology: &TopoJSON, ring: &[i32]) -> f64 {
     if let FeatureGeometryType::Polygon { coordinates } = object_func(
         topology,
         &Geometry {
@@ -77,11 +77,11 @@ struct MergeArcs<'a> {
 }
 
 impl<'a> MergeArcs<'a> {
-    fn call(topology: &TopoJSON, objects: &Vec<Geometry>) -> Geometry {
+    fn call(topology: &TopoJSON, objects: &[Geometry]) -> Geometry {
         MergeArcs::default().merge(topology, objects)
     }
 
-    fn merge(mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) -> Geometry {
+    fn merge(mut self, topology: &TopoJSON, objects: &'a [Geometry]) -> Geometry {
         objects.iter().for_each(|o| self.geometry(o));
 
         for polygon in self.polygons {
@@ -155,7 +155,7 @@ impl<'a> MergeArcs<'a> {
             GeometryType::GeometryCollection { geometries } => {
                 geometries.iter().for_each(|o| self.geometry(o))
             }
-            GeometryType::Polygon { arcs } => self.extract(&arcs),
+            GeometryType::Polygon { arcs } => self.extract(arcs),
             GeometryType::MultiPolygon { arcs } => {
                 arcs.iter().for_each(|polygon| self.extract(polygon))
             }

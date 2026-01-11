@@ -51,5 +51,5 @@ pub fn neighbors(objects: Vec<Geometry>) -> PyResult<Vec<Vec<i32>>> {
 
 #[pyfunction]
 pub fn quantize(topology: TopoJSON, transform: f64) -> PyResult<TopoJSON> {
-    Ok(wrap_quantize(&topology, &transform)?)
+    wrap_quantize(&topology, &transform)
 }
