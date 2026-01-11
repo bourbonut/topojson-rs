@@ -16,17 +16,17 @@ pub fn feature(topology: TopoJSON, o: &Bound<'_, PyAny>) -> PyResult<Feature> {
     let feature = if o.is_instance_of::<PyString>() {
         let key: String = o.extract::<String>()?;
         let o = &topology.objects[&key];
-        wrap_feature(&topology, o)?
+        wrap_feature(&topology, o)
     } else {
         let o: Geometry = o.extract()?;
-        wrap_feature(&topology, &o)?
+        wrap_feature(&topology, &o)
     };
     Ok(feature)
 }
 
 #[pyfunction]
-pub fn merge(topology: TopoJSON, objects: Vec<Geometry>) -> PyResult<FeatureGeometryType> {
-    Ok(wrap_merge(&topology, &objects)?)
+pub fn merge(topology: TopoJSON, objects: Vec<Geometry>) -> FeatureGeometryType {
+    wrap_merge(&topology, &objects)
 }
 
 #[pyfunction]
@@ -36,7 +36,7 @@ pub fn mesh(
     filter: Option<&Bound<'_, PyFunction>>,
 ) -> PyResult<FeatureGeometryType> {
     let object: Option<Geometry> = object.map(|o| o.extract()).transpose()?;
-    wrap_mesh(&topology, object.as_ref(), filter)
+    Ok(wrap_mesh(&topology, object.as_ref(), filter))
 }
 
 #[pyfunction]

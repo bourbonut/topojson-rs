@@ -2,39 +2,38 @@ use crate::geojson_structs::{Feature, FeatureCollection, FeatureGeometryType, Fe
 use crate::reverse::reverse;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
-use pyo3::prelude::PyResult;
 
-pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> PyResult<Feature> {
+pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> Feature {
     match &o.geometry {
         GeometryType::GeometryCollection { geometries } => {
             let features: Vec<FeatureItem> = geometries
                 .into_iter()
                 .map(|o| feature_item(&topology, &o))
-                .collect::<PyResult<Vec<FeatureItem>>>()?;
-            Ok(Feature::Collection(FeatureCollection { features }))
+                .collect();
+            Feature::Collection(FeatureCollection { features })
         }
-        _ => Ok(Feature::Item(feature_item(&topology, o)?)),
+        _ => Feature::Item(feature_item(&topology, o)),
     }
 }
 
-pub fn object_func(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureGeometryType> {
+pub fn object_func(topology: &TopoJSON, o: &Geometry) -> FeatureGeometryType {
     match &topology.transform {
         Some(transform) => Object::call(topology, o, ScaleTransformer::new(transform)),
         None => Object::call(topology, o, IdentityTransformer::new()),
     }
 }
 
-fn feature_item(topology: &TopoJSON, o: &Geometry) -> PyResult<FeatureItem> {
-    let geometry = object_func(topology, &o)?;
+fn feature_item(topology: &TopoJSON, o: &Geometry) -> FeatureItem {
+    let geometry = object_func(topology, &o);
     let id = o.id.clone();
     let bbox = o.bbox.clone();
     let properties = o.properties.clone();
-    Ok(FeatureItem {
+    FeatureItem {
         id,
         bbox,
         properties,
         geometry,
-    })
+    }
 }
 
 pub struct Object<'a, T>
@@ -46,16 +45,12 @@ where
 }
 
 impl<'a, T: Transformer> Object<'a, T> {
-    pub fn call(
-        topology: &TopoJSON,
-        o: &Geometry,
-        transformer: T,
-    ) -> PyResult<FeatureGeometryType> {
+    pub fn call(topology: &TopoJSON, o: &Geometry, transformer: T) -> FeatureGeometryType {
         let mut object = Object {
             arcs: &topology.arcs,
             transformer,
         };
-        Ok(object.geometry(o))
+        object.geometry(o)
     }
 
     fn arc(&mut self, i: i32, points: &mut Vec<[f64; 2]>) {
@@ -156,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn test_feature_1() -> PyResult<()> {
+    fn test_feature_1() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
@@ -165,7 +160,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature_item) = wrap_feature(&t, &t.objects["foo"])? {
+        if let Feature::Item(feature_item) = wrap_feature(&t, &t.objects["foo"]) {
             assert!(matches!(
                 feature_item.geometry,
                 FeatureGeometryType::Polygon { .. }
@@ -173,11 +168,10 @@ mod tests {
         } else {
             panic!("Result should be variant of Feature::Item")
         }
-        Ok(())
     }
 
     #[test]
-    fn test_feature_2() -> PyResult<()> {
+    fn test_feature_2() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Point {
                 coordinates: [0., 0.],
@@ -186,7 +180,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -198,11 +192,10 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_3() -> PyResult<()> {
+    fn test_feature_3() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiPoint {
                 coordinates: vec![[0., 0.]],
@@ -211,7 +204,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -223,18 +216,17 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_4() -> PyResult<()> {
+    fn test_feature_4() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::LineString { arcs: vec![0] },
             id: None,
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -246,11 +238,10 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_5() -> PyResult<()> {
+    fn test_feature_5() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiLineString {
                 arcs: vec![vec![0]],
@@ -259,7 +250,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -271,18 +262,17 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_6() -> PyResult<()> {
+    fn test_feature_6() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::LineString { arcs: vec![3] },
             id: None,
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -303,7 +293,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -315,11 +305,10 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_7() -> PyResult<()> {
+    fn test_feature_7() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
@@ -328,7 +317,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -340,11 +329,10 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_8() -> PyResult<()> {
+    fn test_feature_8() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::MultiPolygon {
                 arcs: vec![vec![vec![0]]],
@@ -353,7 +341,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -365,11 +353,10 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_9() -> PyResult<()> {
+    fn test_feature_9() {
         let topology = TopoJSON {
             bbox: vec![],
             transform: Some(Transform {
@@ -403,7 +390,7 @@ mod tests {
             arcs: vec![vec![[0, 0], [1, 1]], vec![[1, 1], [-1, -1]]],
         };
 
-        if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["foo"])? {
+        if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["foo"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -416,7 +403,7 @@ mod tests {
             panic!("Feature of 'foo' must be variant of 'Item'.")
         }
 
-        if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["bar"])? {
+        if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["bar"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -428,12 +415,10 @@ mod tests {
         } else {
             panic!("Feature of 'bar' must be variant of 'Item'.")
         }
-
-        Ok(())
     }
 
     #[test]
-    fn test_feature_10() -> PyResult<()> {
+    fn test_feature_10() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
@@ -449,7 +434,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
@@ -469,11 +454,10 @@ mod tests {
                 }]
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_11() -> PyResult<()> {
+    fn test_feature_11() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
@@ -489,7 +473,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
@@ -503,11 +487,10 @@ mod tests {
                 }]
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_12() -> PyResult<()> {
+    fn test_feature_12() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
@@ -523,7 +506,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
@@ -537,11 +520,10 @@ mod tests {
                 }]
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_13() -> PyResult<()> {
+    fn test_feature_13() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::GeometryCollection {
                 geometries: vec![Geometry {
@@ -561,7 +543,7 @@ mod tests {
             }),
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Collection(FeatureCollection {
@@ -577,11 +559,10 @@ mod tests {
                 }]
             })
         );
-        Ok(())
     }
 
     #[test]
-    fn test_feature_14() -> PyResult<()> {
+    fn test_feature_14() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
@@ -590,16 +571,15 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"])? {
+        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             assert_eq!(feature.id, Some("foo".to_string()));
         } else {
             panic!("Feature must be variant of 'Item'.")
         }
-        Ok(())
     }
 
     #[test]
-    fn test_feature_15() -> PyResult<()> {
+    fn test_feature_15() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
@@ -610,7 +590,7 @@ mod tests {
             }),
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"])? {
+        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             assert_eq!(
                 feature.properties,
                 Some(Properties {
@@ -620,11 +600,10 @@ mod tests {
         } else {
             panic!("Feature must be variant of 'Item'.")
         }
-        Ok(())
     }
 
     #[test]
-    fn test_feature_16() -> PyResult<()> {
+    fn test_feature_16() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
@@ -633,17 +612,16 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"])? {
+        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             assert_eq!(feature.id, None);
             assert_eq!(feature.properties, None);
         } else {
             panic!("Feature must be variant of 'Item'.")
         }
-        Ok(())
     }
 
     #[test]
-    fn test_feature_17() -> PyResult<()> {
+    fn test_feature_17() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![0]],
@@ -652,7 +630,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"])? {
+        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -664,11 +642,10 @@ mod tests {
         } else {
             panic!("Feature must be variant of 'Item'.")
         }
-        Ok(())
     }
 
     #[test]
-    fn test_feature_18() -> PyResult<()> {
+    fn test_feature_18() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::Polygon {
                 arcs: vec![vec![!0]],
@@ -677,7 +654,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"])? {
+        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -689,18 +666,17 @@ mod tests {
         } else {
             panic!("Feature must be variant of 'Item'.")
         }
-        Ok(())
     }
 
     #[test]
-    fn test_feature_19() -> PyResult<()> {
+    fn test_feature_19() {
         let t = simple_topology(Geometry {
             geometry: GeometryType::LineString { arcs: vec![1, 2] },
             id: None,
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -721,7 +697,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        let feature = wrap_feature(&t, &t.objects["foo"])?;
+        let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
             Feature::Item(FeatureItem {
@@ -733,6 +709,5 @@ mod tests {
                 bbox: None
             })
         );
-        Ok(())
     }
 }

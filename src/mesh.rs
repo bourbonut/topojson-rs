@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use pyo3::types::{PyAnyMethods, PyFunction};
-use pyo3::{Bound, PyResult};
+use pyo3::{
+    Bound,
+    types::{PyAnyMethods, PyFunction},
+};
 
 use crate::feature::object_func;
 use crate::geojson_structs::FeatureGeometryType;
@@ -13,7 +15,7 @@ pub fn wrap_mesh(
     topology: &TopoJSON,
     object: Option<&Geometry>,
     filter: Option<&Bound<PyFunction>>,
-) -> PyResult<FeatureGeometryType> {
+) -> FeatureGeometryType {
     object_func(topology, &MeshArcs::call(topology, object, filter))
 }
 
@@ -135,7 +137,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mesh_1() -> PyResult<()> {
+    fn test_mesh_1() {
         let topology = TopoJSON {
             arcs: Vec::new(),
             bbox: Vec::new(),
@@ -143,16 +145,15 @@ mod tests {
             transform: None,
         };
         assert_eq!(
-            wrap_mesh(&topology, None, None)?,
+            wrap_mesh(&topology, None, None),
             FeatureGeometryType::MultiLineString {
                 coordinates: Vec::new()
             }
         );
-        Ok(())
     }
 
     #[test]
-    fn test_mesh_2() -> PyResult<()> {
+    fn test_mesh_2() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -183,16 +184,15 @@ mod tests {
             arcs: vec![vec![[1, 0], [2, 0]], vec![[0, 0], [1, 0]]],
         };
         assert_eq!(
-            wrap_mesh(&topology, None, None)?,
+            wrap_mesh(&topology, None, None),
             FeatureGeometryType::MultiLineString {
                 coordinates: vec![vec![[0., 0.], [1., 0.], [2., 0.]]]
             }
         );
-        Ok(())
     }
 
     #[test]
-    fn test_mesh_3() -> PyResult<()> {
+    fn test_mesh_3() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -223,7 +223,7 @@ mod tests {
             arcs: vec![vec![[2, 0], [3, 0]], vec![[0, 0], [1, 0]]],
         };
         if let FeatureGeometryType::MultiLineString { coordinates } =
-            wrap_mesh(&topology, None, None)?
+            wrap_mesh(&topology, None, None)
         {
             for values in [vec![[2., 0.], [3., 0.]], vec![[0., 0.], [1., 0.]]] {
                 assert!(coordinates.contains(&values));
@@ -231,6 +231,5 @@ mod tests {
         } else {
             panic!("Feature Geometry Type must be 'FeatureGeometryType::MultiLineString'");
         }
-        Ok(())
     }
 }

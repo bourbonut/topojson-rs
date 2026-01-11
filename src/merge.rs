@@ -1,16 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasher, RandomState};
 
-use pyo3::PyResult;
-use pyo3::exceptions::PyRuntimeError;
-
 use crate::feature::object_func;
 use crate::geojson_structs::FeatureGeometryType;
 use crate::stitch::stitch;
 use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
 
-pub fn wrap_merge(topology: &TopoJSON, objects: &Vec<Geometry>) -> PyResult<FeatureGeometryType> {
-    object_func(topology, &MergeArcs::call(topology, objects)?)
+pub fn wrap_merge(topology: &TopoJSON, objects: &Vec<Geometry>) -> FeatureGeometryType {
+    object_func(topology, &MergeArcs::call(topology, objects))
 }
 
 fn planar_ring_area(ring: &Vec<[f64; 2]>) -> f64 {
@@ -35,11 +32,11 @@ struct MergeArcs<'a> {
 }
 
 impl<'a> MergeArcs<'a> {
-    fn call(topology: &TopoJSON, objects: &Vec<Geometry>) -> PyResult<Geometry> {
+    fn call(topology: &TopoJSON, objects: &Vec<Geometry>) -> Geometry {
         MergeArcs::default().merge(topology, objects)
     }
 
-    fn merge(&mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) -> PyResult<Geometry> {
+    fn merge(&mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) -> Geometry {
         objects.iter().for_each(|o| self.geometry(o));
         let mut visited_polygons = HashSet::new();
         let state = RandomState::new();
@@ -89,9 +86,9 @@ impl<'a> MergeArcs<'a> {
 
             let n = arcs.len();
             if n > 1 {
-                let mut k = self.area(topology, &arcs[0])?;
+                let mut k = self.area(topology, &arcs[0]);
                 for i in 1..n {
-                    let ki = self.area(topology, &arcs[i])?;
+                    let ki = self.area(topology, &arcs[i]);
                     if ki > k {
                         arcs.swap(0, i);
                         k = ki;
@@ -103,12 +100,12 @@ impl<'a> MergeArcs<'a> {
                 global_arcs.push(arcs);
             }
         }
-        Ok(Geometry {
+        Geometry {
             geometry: GeometryType::MultiPolygon { arcs: global_arcs },
             id: None,
             properties: None,
             bbox: None,
-        })
+        }
     }
 
     fn geometry(&mut self, o: &'a Geometry) {
@@ -137,21 +134,23 @@ impl<'a> MergeArcs<'a> {
         self.polygons.push(polygon);
     }
 
-    fn area(&self, topology: &TopoJSON, ring: &Vec<i32>) -> PyResult<f64> {
+    fn area(&self, topology: &TopoJSON, ring: &Vec<i32>) -> f64 {
         if let FeatureGeometryType::Polygon { coordinates } = object_func(
             topology,
             &Geometry {
                 geometry: GeometryType::Polygon {
-                    arcs: vec![ring.to_vec()], // TODO: remove `to_vec` and it might also remove `PyResult`
+                    arcs: vec![ring.to_vec()], // TODO: remove `to_vec`
                 },
                 id: None,
                 properties: None,
                 bbox: None,
             },
-        )? {
-            Ok(planar_ring_area(&coordinates[0]))
+        ) {
+            planar_ring_area(&coordinates[0])
         } else {
-            Err(PyRuntimeError::new_err("Cannot compute the area of ring."))
+            unreachable!(
+                "Object function with 'GeometryType::Polygon' must return 'FeatureGeometryType::Polygon'"
+            )
         }
     }
 }
@@ -161,21 +160,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_merge_1() -> PyResult<()> {
+    fn test_merge_1() {
         let topology = TopoJSON {
             objects: HashMap::new(),
             bbox: Vec::new(),
             transform: None,
             arcs: Vec::new(),
         };
-        let merge = wrap_merge(&topology, &Vec::new())?;
+        let merge = wrap_merge(&topology, &Vec::new());
         assert_eq!(
             merge,
             FeatureGeometryType::MultiPolygon {
                 coordinates: Vec::new()
             }
         );
-        Ok(())
     }
 
     //
@@ -186,7 +184,7 @@ mod tests {
     // +----+----+            +----+----+
     //
     #[test]
-    fn test_merge_2() -> PyResult<()> {
+    fn test_merge_2() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -227,7 +225,7 @@ mod tests {
         if let GeometryType::GeometryCollection { geometries } =
             &topology.objects["collection"].geometry
         {
-            let merge = wrap_merge(&topology, &geometries)?;
+            let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -245,7 +243,6 @@ mod tests {
         } else {
             panic!("Topology must have a collection of geometries.")
         }
-        Ok(())
     }
 
     //
@@ -256,7 +253,7 @@ mod tests {
     // +----+ +----+            +----+ +----+
     //
     #[test]
-    fn test_merge_3() -> PyResult<()> {
+    fn test_merge_3() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -296,7 +293,7 @@ mod tests {
         if let GeometryType::GeometryCollection { geometries } =
             &topology.objects["collection"].geometry
         {
-            let merge = wrap_merge(&topology, &geometries)?;
+            let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -309,7 +306,6 @@ mod tests {
         } else {
             panic!("Topology must have a collection of geometries.")
         }
-        Ok(())
     }
 
     //
@@ -322,7 +318,7 @@ mod tests {
     // +-----------+            +-----------+
     //
     #[test]
-    fn test_merge_4() -> PyResult<()> {
+    fn test_merge_4() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -362,7 +358,7 @@ mod tests {
         if let GeometryType::GeometryCollection { geometries } =
             &topology.objects["collection"].geometry
         {
-            let merge = wrap_merge(&topology, &geometries)?;
+            let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -372,7 +368,6 @@ mod tests {
         } else {
             panic!("Topology must have a collection of geometries.")
         }
-        Ok(())
     }
 
     //
@@ -385,7 +380,7 @@ mod tests {
     // +-----------+-----------+            +-----------+-----------+
     //
     #[test]
-    fn test_merge_5() -> PyResult<()> {
+    fn test_merge_5() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -432,7 +427,7 @@ mod tests {
             // So instead of checking if coordinates are the same, the test checks if sub parts of
             // coordinates are present in final result
             if let FeatureGeometryType::MultiPolygon { coordinates } =
-                wrap_merge(&topology, &geometries)?
+                wrap_merge(&topology, &geometries)
             {
                 for subpart in [
                     vec![
@@ -455,7 +450,6 @@ mod tests {
         } else {
             panic!("Topology must have a collection of geometries.")
         }
-        Ok(())
     }
 
     //
@@ -468,7 +462,7 @@ mod tests {
     // +-------+-------+            +-------+-------+
     //
     #[test]
-    fn test_merge_6() -> PyResult<()> {
+    fn test_merge_6() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -512,7 +506,7 @@ mod tests {
         if let GeometryType::GeometryCollection { geometries } =
             &topology.objects["collection"].geometry
         {
-            let merge = wrap_merge(&topology, &geometries)?;
+            let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -541,7 +535,6 @@ mod tests {
         } else {
             panic!("Topology must have a collection of geometries.")
         }
-        Ok(())
     }
 
     //
@@ -554,7 +547,7 @@ mod tests {
     // +-------+-------+            +-------+-------+
     //
     #[test]
-    fn test_merge_7() -> PyResult<()> {
+    fn test_merge_7() {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -615,7 +608,7 @@ mod tests {
         if let GeometryType::GeometryCollection { geometries } =
             &topology.objects["collection"].geometry
         {
-            let merge = wrap_merge(&topology, &geometries)?;
+            let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -633,6 +626,5 @@ mod tests {
         } else {
             panic!("Topology must have a collection of geometries.")
         }
-        Ok(())
     }
 }
