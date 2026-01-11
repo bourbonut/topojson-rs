@@ -1,5 +1,6 @@
-use std::collections::{HashMap, HashSet};
-use std::hash::{BuildHasher, RandomState};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::feature::object_func;
 use crate::geojson_structs::FeatureGeometryType;
@@ -44,11 +45,35 @@ fn area(topology: &TopoJSON, ring: &Vec<i32>) -> f64 {
     }
 }
 
+struct MarkedPolygon<'a> {
+    values: &'a Vec<Vec<i32>>,
+    visited: bool,
+}
+
+impl<'a> MarkedPolygon<'a> {
+    fn new(polygon: &'a Vec<Vec<i32>>) -> Self {
+        Self {
+            values: polygon,
+            visited: false,
+        }
+    }
+
+    fn is_visited(&self) -> bool {
+        self.visited
+    }
+
+    fn set_visited(&mut self) {
+        self.visited = true;
+    }
+}
+
+type SharedPolygon<'a> = Rc<RefCell<MarkedPolygon<'a>>>;
+
 #[derive(Default)]
 struct MergeArcs<'a> {
-    polygons_by_arcs: HashMap<usize, Vec<&'a Vec<Vec<i32>>>>,
-    polygons: Vec<&'a Vec<Vec<i32>>>,
-    groups: Vec<Vec<&'a Vec<Vec<i32>>>>,
+    polygons_by_arcs: HashMap<usize, Vec<SharedPolygon<'a>>>,
+    polygons: Vec<SharedPolygon<'a>>,
+    groups: Vec<Vec<SharedPolygon<'a>>>,
 }
 
 impl<'a> MergeArcs<'a> {
@@ -58,25 +83,22 @@ impl<'a> MergeArcs<'a> {
 
     fn merge(mut self, topology: &TopoJSON, objects: &'a Vec<Geometry>) -> Geometry {
         objects.iter().for_each(|o| self.geometry(o));
-        let mut visited_polygons = HashSet::new();
-        let state = RandomState::new();
 
         for polygon in self.polygons {
-            let hash = state.hash_one(polygon);
-            if !visited_polygons.contains(&hash) {
+            if !polygon.borrow().is_visited() {
                 let mut group = Vec::new();
+                polygon.borrow_mut().set_visited();
                 let mut neighbors = vec![polygon];
-                visited_polygons.insert(hash);
 
                 while let Some(polygon) = neighbors.pop() {
-                    for ring in polygon.iter() {
+                    for ring in polygon.borrow().values.iter() {
                         for &arc in ring.iter() {
                             let arc = if arc < 0 { !arc } else { arc } as usize;
                             for polygon in self.polygons_by_arcs[&arc].iter() {
-                                let hash = state.hash_one(polygon);
-                                if !visited_polygons.contains(&hash) {
-                                    visited_polygons.insert(hash);
-                                    neighbors.push(polygon);
+                                let is_visited = polygon.borrow().is_visited();
+                                if !is_visited {
+                                    polygon.borrow_mut().set_visited();
+                                    neighbors.push(polygon.clone());
                                 }
                             }
                         }
@@ -92,7 +114,7 @@ impl<'a> MergeArcs<'a> {
         for polygons in self.groups.iter() {
             let mut arcs = Vec::new();
             polygons.iter().for_each(|polygon| {
-                polygon.iter().for_each(|ring| {
+                polygon.borrow().values.iter().for_each(|ring| {
                     ring.iter().for_each(|&arc| {
                         let index = if arc < 0 { !arc } else { arc } as usize;
                         if self.polygons_by_arcs[&index].len() < 2 {
@@ -142,16 +164,17 @@ impl<'a> MergeArcs<'a> {
     }
 
     fn extract(&mut self, polygon: &'a Vec<Vec<i32>>) {
+        let marked_polygon = Rc::new(RefCell::new(MarkedPolygon::new(polygon)));
         polygon.iter().for_each(|ring| {
             ring.iter().for_each(|&arc| {
                 let arc = if arc < 0 { !arc } else { arc } as usize;
                 self.polygons_by_arcs
                     .entry(arc)
-                    .and_modify(|polygons| polygons.push(polygon))
-                    .or_insert(vec![polygon]);
+                    .and_modify(|polygons| polygons.push(marked_polygon.clone()))
+                    .or_insert(vec![marked_polygon.clone()]);
             });
         });
-        self.polygons.push(polygon);
+        self.polygons.push(marked_polygon.clone());
     }
 }
 
