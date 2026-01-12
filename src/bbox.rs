@@ -1,6 +1,6 @@
 use std::array::from_fn;
 
-use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, GeometryType, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
 pub fn wrap_bbox(topology: &TopoJSON) -> [f64; 4] {

@@ -2,7 +2,7 @@ mod api;
 mod bbox;
 mod bisect;
 mod feature;
-mod geojson_structs;
+mod geojsons;
 mod merge;
 mod mesh;
 mod neighbors;
@@ -11,7 +11,7 @@ mod parser;
 mod quantize;
 mod reverse;
 mod stitch;
-mod topojson_structs;
+mod topojsons;
 mod transform;
 mod untransform;
 

@@ -1,4 +1,4 @@
-use crate::topojson_structs::Transform;
+use crate::topojsons::Transform;
 
 pub trait Transformer {
     fn call(&mut self, input: &[f64; 2], i: usize) -> [f64; 2];

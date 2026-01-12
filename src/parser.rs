@@ -1,7 +1,7 @@
 use std::array::from_fn;
 use std::collections::HashMap;
 
-use crate::topojson_structs::{Geometry, GeometryType, Properties, TopoJSON, Transform};
+use crate::topojsons::{Geometry, GeometryType, Properties, TopoJSON, Transform};
 use json::{JsonValue, object::Object};
 
 const PREFIX_URL: &str =

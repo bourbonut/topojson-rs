@@ -1,4 +1,4 @@
-use crate::topojson_structs::Transform;
+use crate::topojsons::Transform;
 
 pub struct ScaleUntransformer {
     x0: f64,

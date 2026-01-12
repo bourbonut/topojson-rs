@@ -1,6 +1,6 @@
-use crate::geojson_structs::{Feature, FeatureCollection, FeatureGeometryType, FeatureItem};
+use crate::geojsons::{Feature, FeatureCollection, FeatureGeometryType, FeatureItem};
 use crate::reverse::reverse;
-use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, GeometryType, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
 pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> Feature {
@@ -127,7 +127,7 @@ impl<'a, T: Transformer> Object<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::topojson_structs::{Properties, Transform};
+    use crate::topojsons::{Properties, Transform};
     use std::collections::HashMap;
 
     use super::*;

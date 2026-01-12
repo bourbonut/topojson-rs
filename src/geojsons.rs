@@ -1,4 +1,4 @@
-use crate::topojson_structs::Properties;
+use crate::topojsons::Properties;
 use pyo3::{prelude::*, types::PyDict};
 
 #[derive(Debug, PartialEq)]

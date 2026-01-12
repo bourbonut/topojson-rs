@@ -1,5 +1,5 @@
 use crate::bbox::bbox;
-use crate::topojson_structs::{Geometry, GeometryType, TopoJSON, Transform};
+use crate::topojsons::{Geometry, GeometryType, TopoJSON, Transform};
 use crate::untransform::ScaleUntransformer;
 
 use pyo3::PyResult;

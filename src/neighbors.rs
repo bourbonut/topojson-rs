@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::bisect::bisect;
-use crate::topojson_structs::{Geometry, GeometryType};
+use crate::topojsons::{Geometry, GeometryType};
 
 pub fn wrap_neighbors(objects: &[Geometry]) -> Vec<Vec<i32>> {
     Neighbors::call(objects)

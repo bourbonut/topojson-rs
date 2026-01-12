@@ -1,7 +1,7 @@
 use indexmap::{IndexMap, map::Values};
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
-use crate::topojson_structs::TopoJSON;
+use crate::topojsons::TopoJSON;
 
 pub fn stitch(topology: &TopoJSON, arcs: Vec<i32>) -> Vec<Vec<i32>> {
     Stitch::call(topology, arcs)

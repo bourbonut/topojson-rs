@@ -6,9 +6,9 @@ use pyo3::{
 };
 
 use crate::feature::object_func;
-use crate::geojson_structs::FeatureGeometryType;
+use crate::geojsons::FeatureGeometryType;
 use crate::stitch::stitch;
-use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, GeometryType, TopoJSON};
 
 pub fn wrap_mesh(
     topology: &TopoJSON,

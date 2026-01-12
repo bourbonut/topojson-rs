@@ -1,11 +1,11 @@
 use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
-use crate::geojson_structs::{Feature, FeatureGeometryType};
+use crate::geojsons::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
 use crate::mesh::wrap_mesh;
 use crate::neighbors::wrap_neighbors;
 use crate::quantize::wrap_quantize;
-use crate::topojson_structs::{Geometry, TopoJSON};
+use crate::topojsons::{Geometry, TopoJSON};
 use pyo3::{
     prelude::*,
     types::{PyAny, PyDict, PyFunction, PyString},

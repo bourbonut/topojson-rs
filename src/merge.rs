@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::feature::object_func;
-use crate::geojson_structs::FeatureGeometryType;
+use crate::geojsons::FeatureGeometryType;
 use crate::stitch::stitch;
-use crate::topojson_structs::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, GeometryType, TopoJSON};
 
 pub fn wrap_merge(topology: &TopoJSON, objects: &[Geometry]) -> FeatureGeometryType {
     object_func(topology, &MergeArcs::call(topology, objects))
