@@ -130,7 +130,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mesh_1() {
+    fn test_mesh_1() -> PyResult<()> {
         let topology = TopoJSON {
             arcs: Vec::new(),
             bbox: Vec::new(),
@@ -138,15 +138,16 @@ mod tests {
             transform: None,
         };
         assert_eq!(
-            wrap_mesh(&topology, None, None),
+            wrap_mesh(&topology, None, None)?,
             FeatureGeometryType::MultiLineString {
                 coordinates: Vec::new()
             }
         );
+        Ok(())
     }
 
     #[test]
-    fn test_mesh_2() {
+    fn test_mesh_2() -> PyResult<()> {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -177,15 +178,16 @@ mod tests {
             arcs: vec![vec![[1, 0], [2, 0]], vec![[0, 0], [1, 0]]],
         };
         assert_eq!(
-            wrap_mesh(&topology, None, None),
+            wrap_mesh(&topology, None, None)?,
             FeatureGeometryType::MultiLineString {
                 coordinates: vec![vec![[0., 0.], [1., 0.], [2., 0.]]]
             }
         );
+        Ok(())
     }
 
     #[test]
-    fn test_mesh_3() {
+    fn test_mesh_3() -> PyResult<()> {
         let topology = TopoJSON {
             bbox: Vec::new(),
             transform: None,
@@ -216,7 +218,7 @@ mod tests {
             arcs: vec![vec![[2, 0], [3, 0]], vec![[0, 0], [1, 0]]],
         };
         if let FeatureGeometryType::MultiLineString { coordinates } =
-            wrap_mesh(&topology, None, None)
+            wrap_mesh(&topology, None, None)?
         {
             for values in [vec![[2., 0.], [3., 0.]], vec![[0., 0.], [1., 0.]]] {
                 assert!(coordinates.contains(&values));
@@ -224,5 +226,6 @@ mod tests {
         } else {
             panic!("Feature Geometry Type must be 'FeatureGeometryType::MultiLineString'");
         }
+        Ok(())
     }
 }
