@@ -54,16 +54,16 @@ Current benchmark (see `benchmark.py`, files available [here](https://github.com
 
 I want to emphasize that if we measure the effective times, there is a **huge difference**:
 ```
-        Feature Land: ratio: 24.366, python:  1.992, rust:  0.082 ms
-    Feature Counties: ratio: 41.921, python: 65.003, rust:  1.551 ms
-           Mesh Land: ratio: 20.978, python:  2.822, rust:  0.135 ms
-         Mesh States: ratio: 17.955, python:  6.409, rust:  0.357 ms
-       Mesh Counties: ratio:  3.879, python: 75.584, rust: 19.486 ms
-               Merge: ratio:  7.009, python: 23.833, rust:  3.400 ms
-           Neighbors: ratio:  9.990, python: 20.587, rust:  2.061 ms
-           Bbox Land: ratio: 63.149, python:  1.848, rust:  0.029 ms
-       Bbox Counties: ratio: 52.910, python: 15.600, rust:  0.295 ms
-            Quantize: ratio: 20.785, python: 51.425, rust:  2.474 ms
+        Feature Land: ratio: 24.366, python:  1.992 ms, rust:  0.082 ms
+    Feature Counties: ratio: 41.921, python: 65.003 ms, rust:  1.551 ms
+           Mesh Land: ratio: 20.978, python:  2.822 ms, rust:  0.135 ms
+         Mesh States: ratio: 17.955, python:  6.409 ms, rust:  0.357 ms
+       Mesh Counties: ratio:  3.879, python: 75.584 ms, rust: 19.486 ms
+               Merge: ratio:  7.009, python: 23.833 ms, rust:  3.400 ms
+           Neighbors: ratio:  9.990, python: 20.587 ms, rust:  2.061 ms
+           Bbox Land: ratio: 63.149, python:  1.848 ms, rust:  0.029 ms
+       Bbox Counties: ratio: 52.910, python: 15.600 ms, rust:  0.295 ms
+            Quantize: ratio: 20.785, python: 51.425 ms, rust:  2.474 ms
 ```
 
 Here, I only measured the time in Rust for **computation** and excluded the **time spent binding** Python objects into Rust structures and vice versa. In other words, I manually wrapped each function with the following code:
