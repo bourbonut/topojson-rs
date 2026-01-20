@@ -41,7 +41,7 @@ def benchmark(name, py_func, rs_func):
 
     is_same = actual == expected
     print(
-        f"{name.title():>20}: ratio: {t1 / t2:.3f}, python: {t1:>6.3f} ms, rust: {t2:>6.3f} ms ({is_same})"
+        f"{name.title():>20}: ratio: {t1 / t2:>6.3f}, python: {t1:>6.3f} ms, rust: {t2:>6.3f} ms ({is_same})"
     )
 
 
@@ -159,6 +159,11 @@ benchmark(
     feature_rust("./land-110m.json", "land"),
 )
 
+benchmark(
+    "feature states",
+    feature_python("./states-10m.json", "states"),
+    feature_rust("./states-10m.json", "states"),
+)
 
 benchmark(
     "feature counties",
@@ -172,11 +177,22 @@ benchmark(
     mesh_rust("./counties-10m.json", "counties"),
 )
 
-
 benchmark(
     "merge counties",
     merge_python("./counties-10m.json", "counties"),
     merge_rust("./counties-10m.json", "counties"),
+)
+
+benchmark(
+    "bbox land",
+    bbox_python("./land-110m.json"),
+    bbox_rust("./land-110m.json"),
+)
+
+benchmark(
+    "bbox states",
+    bbox_python("./states-10m.json"),
+    bbox_rust("./states-10m.json"),
 )
 
 benchmark(
@@ -192,20 +208,23 @@ benchmark(
 )
 
 benchmark(
+    "quantize land",
+    quantize_python("./land-110m.json"),
+    quantize_rust("./land-110m.json"),
+)
+
+benchmark(
+    "quantize states",
+    quantize_python("./states-10m.json"),
+    quantize_rust("./states-10m.json"),
+)
+
+benchmark(
     "quantize counties",
     quantize_python("./counties-10m.json"),
     quantize_rust("./counties-10m.json"),
 )
 
-# topology = load_land()
-# obj = topology["objects"]["land"]
-# benchmark(
-#     "mesh land",
-#     lambda: Mesh()(topology, obj),
-#     lambda: topojson.mesh(topology, obj, filter=None),
-# )
-#
-#
 # def filter_func(a, b):
 #     return a != b
 #
@@ -229,42 +248,4 @@ benchmark(
 #     "mesh counties",
 #     lambda: Mesh()(topology, obj, filt=filter_func),
 #     lambda: topojson.mesh(topology, obj, filter=filter_func),
-# )
-#
-# topology = load_counties()
-# objects = topology["objects"]["counties"]["geometries"]
-# benchmark(
-#     "merge",
-#     lambda: Merge()(topology, objects),
-#     lambda: topojson.merge(topology, objects),
-# )
-#
-# topology = load_counties()
-# objects = list(topology["objects"].values())
-# benchmark(
-#     "neighbors",
-#     lambda: Neighbors()(objects),
-#     lambda: topojson.neighbors(objects),
-# )
-#
-# topology = load_land()
-# benchmark(
-#     "bbox land",
-#     lambda: BBox()(topology),
-#     lambda: topojson.bbox(topology),
-# )
-#
-# topology = load_counties()
-# benchmark(
-#     "bbox counties",
-#     lambda: BBox()(topology),
-#     lambda: topojson.bbox(topology),
-# )
-#
-# topology = load_counties()
-# topology.pop("transform")
-# benchmark(
-#     "quantize",
-#     lambda: Quantize()(topology, transform=1e4),
-#     lambda: topojson.quantize(topology, 1e4),
 # )
