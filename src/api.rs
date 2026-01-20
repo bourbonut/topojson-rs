@@ -103,7 +103,7 @@ impl TopoJSON {
         }
     }
 
-    fn bbox(&self) -> [f64; 4] {
+    fn compute_bbox(&self) -> [f64; 4] {
         wrap_bbox(self)
     }
 

@@ -10,15 +10,20 @@ pub enum Feature {
 #[pyclass]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FeatureCollection {
+    #[pyo3(get)]
     pub features: Vec<FeatureItem>,
 }
 
 #[pyclass]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FeatureItem {
+    #[pyo3(get)]
     pub properties: Option<String>,
+    #[pyo3(get)]
     pub geometry: FeatureGeometryType,
+    #[pyo3(get)]
     pub id: Option<String>,
+    #[pyo3(get)]
     pub bbox: Option<Vec<f64>>,
 }
 
