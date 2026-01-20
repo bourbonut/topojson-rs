@@ -45,90 +45,96 @@ def benchmark(name, py_func, rs_func):
     )
 
 
-topology = load_land()
-obj = topology["objects"]["land"]
-benchmark(
-    "feature land",
-    lambda: Feature()(topology, obj),
-    lambda: topojson.feature(topology, obj),
-)
+start = perf_counter()
+obj = topojson.read("./counties-10m.json")
+end = perf_counter()
+print(f"{(end - start) * 1_000:.3f} ms")
+print(obj.objects)
 
-topology = load_counties()
-obj = topology["objects"]["counties"]
-benchmark(
-    "feature counties",
-    lambda: Feature()(topology, obj),
-    lambda: topojson.feature(topology, obj),
-)
-
-topology = load_land()
-obj = topology["objects"]["land"]
-benchmark(
-    "mesh land",
-    lambda: Mesh()(topology, obj),
-    lambda: topojson.mesh(topology, obj, filter=None),
-)
-
-
-def filter_func(a, b):
-    return a != b
-
-
-topology = load_states()
-obj = topology["objects"]["states"]
-benchmark(
-    "mesh states",
-    lambda: Mesh()(topology, obj, filt=filter_func),
-    lambda: topojson.mesh(topology, obj, filter=filter_func),
-)
-
-
-def filter_func(a, b):
-    return a != b and int(int(a["id"]) / 1000) == int(int(b["id"]) / 1000)
-
-
-topology = load_counties()
-obj = topology["objects"]["counties"]
-benchmark(
-    "mesh counties",
-    lambda: Mesh()(topology, obj, filt=filter_func),
-    lambda: topojson.mesh(topology, obj, filter=filter_func),
-)
-
-topology = load_counties()
-objects = topology["objects"]["counties"]["geometries"]
-benchmark(
-    "merge",
-    lambda: Merge()(topology, objects),
-    lambda: topojson.merge(topology, objects),
-)
-
-topology = load_counties()
-objects = list(topology["objects"].values())
-benchmark(
-    "neighbors",
-    lambda: Neighbors()(objects),
-    lambda: topojson.neighbors(objects),
-)
-
-topology = load_land()
-benchmark(
-    "bbox land",
-    lambda: BBox()(topology),
-    lambda: topojson.bbox(topology),
-)
-
-topology = load_counties()
-benchmark(
-    "bbox counties",
-    lambda: BBox()(topology),
-    lambda: topojson.bbox(topology),
-)
-
-topology = load_counties()
-topology.pop("transform")
-benchmark(
-    "quantize",
-    lambda: Quantize()(topology, transform=1e4),
-    lambda: topojson.quantize(topology, 1e4),
-)
+# topology = load_land()
+# obj = topology["objects"]["land"]
+# benchmark(
+#     "feature land",
+#     lambda: Feature()(topology, obj),
+#     lambda: topojson.feature(topology, obj),
+# )
+#
+# topology = load_counties()
+# obj = topology["objects"]["counties"]
+# benchmark(
+#     "feature counties",
+#     lambda: Feature()(topology, obj),
+#     lambda: topojson.feature(topology, obj),
+# )
+#
+# topology = load_land()
+# obj = topology["objects"]["land"]
+# benchmark(
+#     "mesh land",
+#     lambda: Mesh()(topology, obj),
+#     lambda: topojson.mesh(topology, obj, filter=None),
+# )
+#
+#
+# def filter_func(a, b):
+#     return a != b
+#
+#
+# topology = load_states()
+# obj = topology["objects"]["states"]
+# benchmark(
+#     "mesh states",
+#     lambda: Mesh()(topology, obj, filt=filter_func),
+#     lambda: topojson.mesh(topology, obj, filter=filter_func),
+# )
+#
+#
+# def filter_func(a, b):
+#     return a != b and int(int(a["id"]) / 1000) == int(int(b["id"]) / 1000)
+#
+#
+# topology = load_counties()
+# obj = topology["objects"]["counties"]
+# benchmark(
+#     "mesh counties",
+#     lambda: Mesh()(topology, obj, filt=filter_func),
+#     lambda: topojson.mesh(topology, obj, filter=filter_func),
+# )
+#
+# topology = load_counties()
+# objects = topology["objects"]["counties"]["geometries"]
+# benchmark(
+#     "merge",
+#     lambda: Merge()(topology, objects),
+#     lambda: topojson.merge(topology, objects),
+# )
+#
+# topology = load_counties()
+# objects = list(topology["objects"].values())
+# benchmark(
+#     "neighbors",
+#     lambda: Neighbors()(objects),
+#     lambda: topojson.neighbors(objects),
+# )
+#
+# topology = load_land()
+# benchmark(
+#     "bbox land",
+#     lambda: BBox()(topology),
+#     lambda: topojson.bbox(topology),
+# )
+#
+# topology = load_counties()
+# benchmark(
+#     "bbox counties",
+#     lambda: BBox()(topology),
+#     lambda: topojson.bbox(topology),
+# )
+#
+# topology = load_counties()
+# topology.pop("transform")
+# benchmark(
+#     "quantize",
+#     lambda: Quantize()(topology, transform=1e4),
+#     lambda: topojson.quantize(topology, 1e4),
+# )

@@ -1,7 +1,17 @@
 use std::collections::HashMap;
 
 use pyo3::{exceptions::PyRuntimeError, prelude::*, types::PyString};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+fn deserialize_string_or_map<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde_json::Value;
+
+    let value = Value::deserialize(deserializer)?;
+    Ok(Some(value.to_string()))
+}
 
 #[pyclass]
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -10,6 +20,7 @@ pub struct TopoJSON {
     pub bbox: Vec<f64>,
     #[pyo3(get)]
     pub transform: Option<Transform>,
+    #[pyo3(get)]
     pub objects: HashMap<String, Geometry>,
     #[pyo3(get)]
     pub arcs: Vec<Vec<[i32; 2]>>,
@@ -24,66 +35,66 @@ pub struct Transform {
     pub translate: [f64; 2],
 }
 
+#[pyclass]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Geometry {
     GeometryCollection {
         geometries: Vec<Geometry>,
         id: Option<String>,
-        properties: Option<Properties>,
+        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(default)]
+        properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
     Point {
         coordinates: [f64; 2],
         id: Option<String>,
-        properties: Option<Properties>,
+        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(default)]
+        properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
     MultiPoint {
         coordinates: Vec<[f64; 2]>,
         id: Option<String>,
-        properties: Option<Properties>,
+        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(default)]
+        properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
     LineString {
         arcs: Vec<i32>,
         id: Option<String>,
-        properties: Option<Properties>,
+        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(default)]
+        properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
     MultiLineString {
         arcs: Vec<Vec<i32>>,
         id: Option<String>,
-        properties: Option<Properties>,
+        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(default)]
+        properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
     Polygon {
         arcs: Vec<Vec<i32>>,
         id: Option<String>,
-        properties: Option<Properties>,
+        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(default)]
+        properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
     MultiPolygon {
         arcs: Vec<Vec<Vec<i32>>>,
         id: Option<String>,
-        properties: Option<Properties>,
+        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(default)]
+        properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
-}
-
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Properties(serde_json::Value);
-
-impl<'py> IntoPyObject<'py> for Properties {
-    type Target = PyString;
-    type Output = Bound<'py, Self::Target>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let bytes =
-            serde_json::to_vec(&self.0).map_err(|e| PyRuntimeError::new_err(e.to_string()))?;
-        PyString::from_bytes(py, &bytes)
-    }
 }
 
 #[pymethods]
