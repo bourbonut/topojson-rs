@@ -134,11 +134,3 @@ impl Geometry {
         }
     }
 }
-
-#[pymethods]
-impl TopoJSON {
-    #[getter]
-    fn transform(&self) -> Option<Transform> {
-        self.transform.clone()
-    }
-}

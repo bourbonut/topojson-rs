@@ -127,7 +127,7 @@ impl<'a, T: Transformer> Object<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::topojsons::{Properties, Transform};
+    use crate::topojsons::Transform;
     use std::collections::HashMap;
 
     use super::*;
@@ -152,10 +152,8 @@ mod tests {
 
     #[test]
     fn test_feature_1() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![0]],
             id: None,
             properties: None,
             bbox: None,
@@ -172,10 +170,8 @@ mod tests {
 
     #[test]
     fn test_feature_2() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Point {
-                coordinates: [0., 0.],
-            },
+        let t = simple_topology(Geometry::Point {
+            coordinates: [0., 0.],
             id: None,
             properties: None,
             bbox: None,
@@ -196,10 +192,8 @@ mod tests {
 
     #[test]
     fn test_feature_3() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::MultiPoint {
-                coordinates: vec![[0., 0.]],
-            },
+        let t = simple_topology(Geometry::MultiPoint {
+            coordinates: vec![[0., 0.]],
             id: None,
             properties: None,
             bbox: None,
@@ -220,8 +214,8 @@ mod tests {
 
     #[test]
     fn test_feature_4() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::LineString { arcs: vec![0] },
+        let t = simple_topology(Geometry::LineString {
+            arcs: vec![0],
             id: None,
             properties: None,
             bbox: None,
@@ -242,10 +236,8 @@ mod tests {
 
     #[test]
     fn test_feature_5() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::MultiLineString {
-                arcs: vec![vec![0]],
-            },
+        let t = simple_topology(Geometry::MultiLineString {
+            arcs: vec![vec![0]],
             id: None,
             properties: None,
             bbox: None,
@@ -266,8 +258,8 @@ mod tests {
 
     #[test]
     fn test_feature_6() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::LineString { arcs: vec![3] },
+        let t = simple_topology(Geometry::LineString {
+            arcs: vec![3],
             id: None,
             properties: None,
             bbox: None,
@@ -285,10 +277,8 @@ mod tests {
             })
         );
 
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::MultiLineString {
-                arcs: vec![vec![3], vec![4]],
-            },
+        let t = simple_topology(Geometry::MultiLineString {
+            arcs: vec![vec![3], vec![4]],
             id: None,
             properties: None,
             bbox: None,
@@ -309,10 +299,8 @@ mod tests {
 
     #[test]
     fn test_feature_7() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![0]],
             id: None,
             properties: None,
             bbox: None,
@@ -333,10 +321,8 @@ mod tests {
 
     #[test]
     fn test_feature_8() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::MultiPolygon {
-                arcs: vec![vec![vec![0]]],
-            },
+        let t = simple_topology(Geometry::MultiPolygon {
+            arcs: vec![vec![vec![0]]],
             id: None,
             properties: None,
             bbox: None,
@@ -366,10 +352,8 @@ mod tests {
             objects: HashMap::from_iter([
                 (
                     "foo".to_string(),
-                    Geometry {
-                        geometry: GeometryType::Polygon {
-                            arcs: vec![vec![0]],
-                        },
+                    Geometry::Polygon {
+                        arcs: vec![vec![0]],
                         id: None,
                         properties: None,
                         bbox: None,
@@ -377,10 +361,8 @@ mod tests {
                 ),
                 (
                     "bar".to_string(),
-                    Geometry {
-                        geometry: GeometryType::Polygon {
-                            arcs: vec![vec![0, 1]],
-                        },
+                    Geometry::Polygon {
+                        arcs: vec![vec![0, 1]],
                         id: None,
                         properties: None,
                         bbox: None,
@@ -419,17 +401,13 @@ mod tests {
 
     #[test]
     fn test_feature_10() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::GeometryCollection {
-                geometries: vec![Geometry {
-                    geometry: GeometryType::MultiPolygon {
-                        arcs: vec![vec![vec![0]]],
-                    },
-                    id: None,
-                    properties: None,
-                    bbox: None,
-                }],
-            },
+        let t = simple_topology(Geometry::GeometryCollection {
+            geometries: vec![Geometry::MultiPolygon {
+                arcs: vec![vec![vec![0]]],
+                id: None,
+                properties: None,
+                bbox: None,
+            }],
             id: None,
             properties: None,
             bbox: None,
@@ -458,17 +436,13 @@ mod tests {
 
     #[test]
     fn test_feature_11() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::GeometryCollection {
-                geometries: vec![Geometry {
-                    geometry: GeometryType::Point {
-                        coordinates: [0., 0.],
-                    },
-                    id: None,
-                    properties: None,
-                    bbox: None,
-                }],
-            },
+        let t = simple_topology(Geometry::GeometryCollection {
+            geometries: vec![Geometry::Point {
+                coordinates: [0., 0.],
+                id: None,
+                properties: None,
+                bbox: None,
+            }],
             id: None,
             properties: None,
             bbox: None,
@@ -491,17 +465,13 @@ mod tests {
 
     #[test]
     fn test_feature_12() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::GeometryCollection {
-                geometries: vec![Geometry {
-                    geometry: GeometryType::Point {
-                        coordinates: [0., 0.],
-                    },
-                    id: Some("feature".to_string()),
-                    properties: None,
-                    bbox: None,
-                }],
-            },
+        let t = simple_topology(Geometry::GeometryCollection {
+            geometries: vec![Geometry::Point {
+                coordinates: [0., 0.],
+                id: Some("feature".to_string()),
+                properties: None,
+                bbox: None,
+            }],
             id: Some("collection".to_string()),
             properties: None,
             bbox: None,
@@ -524,23 +494,15 @@ mod tests {
 
     #[test]
     fn test_feature_13() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::GeometryCollection {
-                geometries: vec![Geometry {
-                    geometry: GeometryType::Point {
-                        coordinates: [0., 0.],
-                    },
-                    id: None,
-                    properties: Some(Properties {
-                        name: "feature".to_string(),
-                    }),
-                    bbox: None,
-                }],
-            },
+        let t = simple_topology(Geometry::GeometryCollection {
+            geometries: vec![Geometry::Point {
+                coordinates: [0., 0.],
+                id: None,
+                properties: Some("{'name': 'feature'}".to_string()),
+                bbox: None,
+            }],
             id: None,
-            properties: Some(Properties {
-                name: "collection".to_string(),
-            }),
+            properties: Some("{'name': 'collection'}".to_string()),
             bbox: None,
         });
         let feature = wrap_feature(&t, &t.objects["foo"]);
@@ -548,9 +510,7 @@ mod tests {
             feature,
             Feature::Collection(FeatureCollection {
                 features: vec![FeatureItem {
-                    properties: Some(Properties {
-                        name: "feature".to_string()
-                    }),
+                    properties: Some("{'name': 'feature'}".to_string()),
                     geometry: FeatureGeometryType::Point {
                         coordinates: [0., 0.]
                     },
@@ -563,10 +523,8 @@ mod tests {
 
     #[test]
     fn test_feature_14() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![0]],
             id: Some("foo".to_string()),
             properties: None,
             bbox: None,
@@ -580,23 +538,15 @@ mod tests {
 
     #[test]
     fn test_feature_15() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![0]],
             id: None,
-            properties: Some(Properties {
-                name: "property".to_string(),
-            }),
+            properties: Some("{'name': 'property'}".to_string()),
+
             bbox: None,
         });
         if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
-            assert_eq!(
-                feature.properties,
-                Some(Properties {
-                    name: "property".to_string()
-                })
-            );
+            assert_eq!(feature.properties, Some("{'name': 'property'}".to_string()));
         } else {
             panic!("Feature must be variant of 'Item'.")
         }
@@ -604,10 +554,8 @@ mod tests {
 
     #[test]
     fn test_feature_16() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![0]],
             id: None,
             properties: None,
             bbox: None,
@@ -622,10 +570,8 @@ mod tests {
 
     #[test]
     fn test_feature_17() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![0]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![0]],
             id: None,
             properties: None,
             bbox: None,
@@ -646,10 +592,8 @@ mod tests {
 
     #[test]
     fn test_feature_18() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![!0]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![!0]],
             id: None,
             properties: None,
             bbox: None,
@@ -670,8 +614,8 @@ mod tests {
 
     #[test]
     fn test_feature_19() {
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::LineString { arcs: vec![1, 2] },
+        let t = simple_topology(Geometry::LineString {
+            arcs: vec![1, 2],
             id: None,
             properties: None,
             bbox: None,
@@ -689,10 +633,8 @@ mod tests {
             })
         );
 
-        let t = simple_topology(Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![vec![!2, !1]],
-            },
+        let t = simple_topology(Geometry::Polygon {
+            arcs: vec![vec![!2, !1]],
             id: None,
             properties: None,
             bbox: None,

@@ -1,20 +1,36 @@
 // use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
-use crate::geojsons::{Feature, FeatureGeometryType};
+use crate::geojsons::Feature;
 // use crate::merge::wrap_merge;
 // use crate::mesh::wrap_mesh;
 // use crate::neighbors::wrap_neighbors;
 // use crate::quantize::wrap_quantize;
-use crate::topojsons::{Geometry, TopoJSON};
-use pyo3::{
-    prelude::*,
-    types::{PyAny, PyDict, PyFunction, PyString},
-};
+use crate::topojsons::{Geometry, TopoJSON, Transform};
+use pyo3::exceptions::PyKeyError;
+use pyo3::prelude::*;
 
 #[pyfunction]
-pub fn feature(topology: &TopoJSON, o: &Geometry) -> PyResult<i32> {
-    let _ = wrap_feature(topology, o);
-    Ok(12)
+pub fn feature(topology: &TopoJSON, o: &Geometry) -> Feature {
+    wrap_feature(topology, o)
+}
+
+#[pymethods]
+impl TopoJSON {
+    #[getter]
+    fn transform(&self) -> Option<Transform> {
+        self.transform.clone()
+    }
+
+    fn feature(&self, key: &str) -> PyResult<Feature> {
+        if let Some(o) = self.objects.get(key) {
+            Ok(wrap_feature(self, o))
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "Key '{}' not found in 'objects'",
+                key
+            )))
+        }
+    }
 }
 
 // #[pyfunction]

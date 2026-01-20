@@ -15,6 +15,7 @@ mod topojsons;
 mod transform;
 // mod untransform;
 
+use crate::geojsons::Feature;
 use crate::topojsons::TopoJSON;
 
 use std::fs;
@@ -33,6 +34,7 @@ fn read(file: &str) -> PyResult<TopoJSON> {
 #[pymodule]
 fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TopoJSON>()?;
+    m.add_class::<Feature>()?;
     m.add_function(wrap_pyfunction!(read, m)?)?;
     m.add_function(wrap_pyfunction!(api::feature, m)?)?;
     // m.add_function(wrap_pyfunction!(api::merge, m)?)?;
