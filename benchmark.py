@@ -45,11 +45,22 @@ def benchmark(name, py_func, rs_func):
     )
 
 
-start = perf_counter()
-obj = topojson.read("./counties-10m.json")
-end = perf_counter()
-print(f"{(end - start) * 1_000:.3f} ms")
-print(obj.objects)
+def feature_rust():
+    topology = topojson.read("./counties-10m.json")
+    return topojson.feature(topology, topology.objects["counties"])
+
+
+def feature_python():
+    topology = load_counties()
+    obj = topology["objects"]["counties"]
+    return Feature()(topology, obj)
+
+
+benchmark(
+    "feature counties",
+    feature_python,
+    feature_rust,
+)
 
 # topology = load_land()
 # obj = topology["objects"]["land"]

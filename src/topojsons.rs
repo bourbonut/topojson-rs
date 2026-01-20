@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use pyo3::{exceptions::PyRuntimeError, prelude::*, types::PyString};
+use pyo3::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize};
 
-fn deserialize_string_or_map<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+fn deserialize_map_into_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -42,7 +42,7 @@ pub enum Geometry {
     GeometryCollection {
         geometries: Vec<Geometry>,
         id: Option<String>,
-        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
@@ -50,7 +50,7 @@ pub enum Geometry {
     Point {
         coordinates: [f64; 2],
         id: Option<String>,
-        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
@@ -58,7 +58,7 @@ pub enum Geometry {
     MultiPoint {
         coordinates: Vec<[f64; 2]>,
         id: Option<String>,
-        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
@@ -66,7 +66,7 @@ pub enum Geometry {
     LineString {
         arcs: Vec<i32>,
         id: Option<String>,
-        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
@@ -74,7 +74,7 @@ pub enum Geometry {
     MultiLineString {
         arcs: Vec<Vec<i32>>,
         id: Option<String>,
-        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
@@ -82,7 +82,7 @@ pub enum Geometry {
     Polygon {
         arcs: Vec<Vec<i32>>,
         id: Option<String>,
-        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
@@ -90,11 +90,49 @@ pub enum Geometry {
     MultiPolygon {
         arcs: Vec<Vec<Vec<i32>>>,
         id: Option<String>,
-        #[serde(deserialize_with = "deserialize_string_or_map")]
+        #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
+}
+
+impl Geometry {
+    pub fn id(&self) -> Option<String> {
+        match self {
+            Geometry::GeometryCollection { id, .. } => id.clone(),
+            Geometry::Point { id, .. } => id.clone(),
+            Geometry::MultiPoint { id, .. } => id.clone(),
+            Geometry::LineString { id, .. } => id.clone(),
+            Geometry::MultiLineString { id, .. } => id.clone(),
+            Geometry::Polygon { id, .. } => id.clone(),
+            Geometry::MultiPolygon { id, .. } => id.clone(),
+        }
+    }
+
+    pub fn properties(&self) -> Option<String> {
+        match self {
+            Geometry::GeometryCollection { properties, .. } => properties.clone(),
+            Geometry::Point { properties, .. } => properties.clone(),
+            Geometry::MultiPoint { properties, .. } => properties.clone(),
+            Geometry::LineString { properties, .. } => properties.clone(),
+            Geometry::MultiLineString { properties, .. } => properties.clone(),
+            Geometry::Polygon { properties, .. } => properties.clone(),
+            Geometry::MultiPolygon { properties, .. } => properties.clone(),
+        }
+    }
+
+    pub fn bbox(&self) -> Option<Vec<f64>> {
+        match self {
+            Geometry::GeometryCollection { bbox, .. } => bbox.clone(),
+            Geometry::Point { bbox, .. } => bbox.clone(),
+            Geometry::MultiPoint { bbox, .. } => bbox.clone(),
+            Geometry::LineString { bbox, .. } => bbox.clone(),
+            Geometry::MultiLineString { bbox, .. } => bbox.clone(),
+            Geometry::Polygon { bbox, .. } => bbox.clone(),
+            Geometry::MultiPolygon { bbox, .. } => bbox.clone(),
+        }
+    }
 }
 
 #[pymethods]

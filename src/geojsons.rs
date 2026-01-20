@@ -1,4 +1,3 @@
-use crate::topojsons::Properties;
 use pyo3::{prelude::*, types::PyDict};
 
 #[derive(Debug, PartialEq)]
@@ -40,7 +39,7 @@ impl<'py> IntoPyObject<'py> for FeatureCollection {
 
 #[derive(Debug, PartialEq)]
 pub struct FeatureItem {
-    pub properties: Option<Properties>,
+    pub properties: Option<String>,
     pub geometry: FeatureGeometryType,
     pub id: Option<String>,
     pub bbox: Option<Vec<f64>>,

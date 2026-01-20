@@ -1,11 +1,11 @@
 use crate::geojsons::{Feature, FeatureCollection, FeatureGeometryType, FeatureItem};
 use crate::reverse::reverse;
-use crate::topojsons::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
 pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> Feature {
-    match &o.geometry {
-        GeometryType::GeometryCollection { geometries } => {
+    match &o {
+        Geometry::GeometryCollection { geometries, .. } => {
             let features: Vec<FeatureItem> = geometries
                 .iter()
                 .map(|o| feature_item(topology, o))
@@ -25,9 +25,9 @@ pub fn object_func(topology: &TopoJSON, o: &Geometry) -> FeatureGeometryType {
 
 fn feature_item(topology: &TopoJSON, o: &Geometry) -> FeatureItem {
     let geometry = object_func(topology, o);
-    let id = o.id.clone();
-    let bbox = o.bbox.clone();
-    let properties = o.properties.clone();
+    let id = o.id();
+    let bbox = o.bbox();
+    let properties = o.properties();
     FeatureItem {
         id,
         bbox,
@@ -97,28 +97,28 @@ impl<'a, T: Transformer> Object<'a, T> {
     }
 
     fn geometry(&mut self, o: &Geometry) -> FeatureGeometryType {
-        match &o.geometry {
-            GeometryType::GeometryCollection { geometries } => {
+        match &o {
+            Geometry::GeometryCollection { geometries, .. } => {
                 FeatureGeometryType::GeometryCollection {
                     geometries: geometries.iter().map(|o| self.geometry(o)).collect(),
                 }
             }
-            GeometryType::Point { coordinates } => FeatureGeometryType::Point {
+            Geometry::Point { coordinates, .. } => FeatureGeometryType::Point {
                 coordinates: self.point(coordinates),
             },
-            GeometryType::MultiPoint { coordinates } => FeatureGeometryType::MultiPoint {
+            Geometry::MultiPoint { coordinates, .. } => FeatureGeometryType::MultiPoint {
                 coordinates: coordinates.iter().map(|p| self.point(p)).collect(),
             },
-            GeometryType::LineString { arcs } => FeatureGeometryType::LineString {
+            Geometry::LineString { arcs, .. } => FeatureGeometryType::LineString {
                 coordinates: self.line(arcs),
             },
-            GeometryType::MultiLineString { arcs } => FeatureGeometryType::MultiLineString {
+            Geometry::MultiLineString { arcs, .. } => FeatureGeometryType::MultiLineString {
                 coordinates: arcs.iter().map(|arcs| self.line(arcs)).collect(),
             },
-            GeometryType::Polygon { arcs } => FeatureGeometryType::Polygon {
+            Geometry::Polygon { arcs, .. } => FeatureGeometryType::Polygon {
                 coordinates: self.polygon(arcs),
             },
-            GeometryType::MultiPolygon { arcs } => FeatureGeometryType::MultiPolygon {
+            Geometry::MultiPolygon { arcs, .. } => FeatureGeometryType::MultiPolygon {
                 coordinates: arcs.iter().map(|arcs| self.polygon(arcs)).collect(),
             },
         }

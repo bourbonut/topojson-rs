@@ -1,18 +1,18 @@
-// mod api;
+mod api;
 // mod bbox;
 // mod bisect;
-// mod feature;
-// mod geojsons;
+mod feature;
+mod geojsons;
 // mod merge;
 // mod mesh;
 // mod neighbors;
 // #[cfg(test)]
 // mod parser;
 // mod quantize;
-// mod reverse;
+mod reverse;
 // mod stitch;
 mod topojsons;
-// mod transform;
+mod transform;
 // mod untransform;
 
 use crate::topojsons::TopoJSON;
@@ -34,7 +34,7 @@ fn read(file: &str) -> PyResult<TopoJSON> {
 fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TopoJSON>()?;
     m.add_function(wrap_pyfunction!(read, m)?)?;
-    // m.add_function(wrap_pyfunction!(api::feature, m)?)?;
+    m.add_function(wrap_pyfunction!(api::feature, m)?)?;
     // m.add_function(wrap_pyfunction!(api::merge, m)?)?;
     // m.add_function(wrap_pyfunction!(api::mesh, m)?)?;
     // m.add_function(wrap_pyfunction!(api::bbox, m)?)?;
