@@ -6,7 +6,7 @@ use crate::mesh::wrap_mesh;
 use crate::neighbors::wrap_neighbors;
 use crate::quantize::wrap_quantize;
 use crate::topojsons::{Geometry, TopoJSON, Transform};
-use pyo3::exceptions::PyKeyError;
+use pyo3::exceptions::{PyKeyError, PyTypeError};
 use pyo3::prelude::*;
 use pyo3::types::PyFunction;
 
@@ -67,17 +67,20 @@ impl TopoJSON {
         }
     }
 
-    fn merge(&self, keys: Vec<String>) -> PyResult<FeatureGeometryType> {
-        let objects: Vec<&Geometry> = keys
-            .iter()
-            .map(|key| {
-                self.objects.get(key).ok_or(PyKeyError::new_err(format!(
-                    "Key '{}' not found in 'objects'",
-                    key
-                )))
-            })
-            .collect::<PyResult<Vec<&Geometry>>>()?;
-        Ok(wrap_merge(&self, &objects))
+    fn merge(&self, key: &str) -> PyResult<FeatureGeometryType> {
+        if let Geometry::GeometryCollection { geometries, .. } = self.objects.get(key).ok_or(
+            PyKeyError::new_err(format!("Key '{}' not found in 'objects'", key)),
+        )? {
+            Ok(wrap_merge(
+                &self,
+                geometries.iter().collect::<Vec<_>>().as_slice(),
+            ))
+        } else {
+            Err(PyTypeError::new_err(format!(
+                "The type of geometry '{}' must be 'GeometryCollection'",
+                key
+            )))
+        }
     }
 
     fn mesh(

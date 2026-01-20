@@ -84,6 +84,7 @@ def mesh_python(filename, key, filt=None):
 def merge_rust(filename, key):
     def wrapper():
         topology = topojson.read(filename)
+        # return topology.merge(key)
         return topojson.merge(topology, topology.objects[key].geometries)
 
     return wrapper
