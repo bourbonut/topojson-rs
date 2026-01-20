@@ -1,7 +1,7 @@
 // use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
-use crate::geojsons::Feature;
-// use crate::merge::wrap_merge;
+use crate::geojsons::{Feature, FeatureGeometryType};
+use crate::merge::wrap_merge;
 // use crate::mesh::wrap_mesh;
 // use crate::neighbors::wrap_neighbors;
 // use crate::quantize::wrap_quantize;
@@ -14,30 +14,11 @@ pub fn feature(topology: &TopoJSON, o: &Geometry) -> Feature {
     wrap_feature(topology, o)
 }
 
-#[pymethods]
-impl TopoJSON {
-    #[getter]
-    fn transform(&self) -> Option<Transform> {
-        self.transform.clone()
-    }
-
-    fn feature(&self, key: &str) -> PyResult<Feature> {
-        if let Some(o) = self.objects.get(key) {
-            Ok(wrap_feature(self, o))
-        } else {
-            Err(PyKeyError::new_err(format!(
-                "Key '{}' not found in 'objects'",
-                key
-            )))
-        }
-    }
+#[pyfunction]
+pub fn merge(topology: &TopoJSON, objects: Vec<Geometry>) -> FeatureGeometryType {
+    wrap_merge(topology, objects.iter().collect::<Vec<_>>().as_slice())
 }
 
-// #[pyfunction]
-// pub fn merge(topology: TopoJSON, objects: Vec<Geometry>) -> FeatureGeometryType {
-//     wrap_merge(&topology, &objects)
-// }
-//
 // #[pyfunction]
 // pub fn mesh(
 //     topology: TopoJSON,
@@ -62,3 +43,35 @@ impl TopoJSON {
 // pub fn quantize(topology: TopoJSON, transform: f64) -> PyResult<TopoJSON> {
 //     wrap_quantize(&topology, &transform)
 // }
+
+#[pymethods]
+impl TopoJSON {
+    #[getter]
+    fn transform(&self) -> Option<Transform> {
+        self.transform.clone()
+    }
+
+    fn feature(&self, key: &str) -> PyResult<Feature> {
+        if let Some(o) = self.objects.get(key) {
+            Ok(wrap_feature(self, o))
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "Key '{}' not found in 'objects'",
+                key
+            )))
+        }
+    }
+
+    fn merge(&self, keys: Vec<String>) -> PyResult<FeatureGeometryType> {
+        let objects: Vec<&Geometry> = keys
+            .iter()
+            .map(|key| {
+                self.objects.get(key).ok_or(PyKeyError::new_err(format!(
+                    "Key '{}' not found in 'objects'",
+                    key
+                )))
+            })
+            .collect::<PyResult<Vec<&Geometry>>>()?;
+        Ok(wrap_merge(&self, &objects))
+    }
+}

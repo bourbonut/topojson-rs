@@ -45,39 +45,62 @@ def benchmark(name, py_func, rs_func):
     )
 
 
-def feature_rust():
-    topology = topojson.read("./counties-10m.json")
-    return topojson.feature(topology, topology.objects["counties"])
+def feature_rust(filename, key):
+    def wrapper():
+        topology = topojson.read(filename)
+        return topojson.feature(topology, topology.objects[key])
+
+    return wrapper
 
 
-def feature_python():
-    topology = load_counties()
-    obj = topology["objects"]["counties"]
-    return Feature()(topology, obj)
+def feature_python(filename, key):
+    def wrapper():
+        with open(filename) as file:
+            topology = json.load(file)
+        obj = topology["objects"][key]
+        return Feature()(topology, obj)
+
+    return wrapper
+
+
+def merge_rust(filename, key):
+    def wrapper():
+        topology = topojson.read(filename)
+        return topojson.merge(topology, topology.objects[key].geometries)
+
+    return wrapper
+
+
+def merge_python(filename, key):
+    def wrapper():
+        with open(filename) as file:
+            topology = json.load(file)
+        objects = topology["objects"][key]["geometries"]
+        return Merge()(topology, objects)
+
+    return wrapper
+
+
+benchmark(
+    "feature land",
+    feature_python("./land-110m.json", "land"),
+    feature_rust("./land-110m.json", "land"),
+)
 
 
 benchmark(
     "feature counties",
-    feature_python,
-    feature_rust,
+    feature_python("./counties-10m.json", "counties"),
+    feature_rust("./counties-10m.json", "counties"),
 )
 
-# topology = load_land()
-# obj = topology["objects"]["land"]
-# benchmark(
-#     "feature land",
-#     lambda: Feature()(topology, obj),
-#     lambda: topojson.feature(topology, obj),
-# )
-#
-# topology = load_counties()
-# obj = topology["objects"]["counties"]
-# benchmark(
-#     "feature counties",
-#     lambda: Feature()(topology, obj),
-#     lambda: topojson.feature(topology, obj),
-# )
-#
+
+benchmark(
+    "merge counties",
+    merge_python("./counties-10m.json", "counties"),
+    merge_rust("./counties-10m.json", "counties"),
+)
+
 # topology = load_land()
 # obj = topology["objects"]["land"]
 # benchmark(

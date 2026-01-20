@@ -5,9 +5,9 @@ use std::rc::Rc;
 use crate::feature::object_func;
 use crate::geojsons::FeatureGeometryType;
 use crate::stitch::stitch;
-use crate::topojsons::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, TopoJSON};
 
-pub fn wrap_merge(topology: &TopoJSON, objects: &[Geometry]) -> FeatureGeometryType {
+pub fn wrap_merge(topology: &TopoJSON, objects: &[&Geometry]) -> FeatureGeometryType {
     object_func(topology, &MergeArcs::call(topology, objects))
 }
 
@@ -28,10 +28,8 @@ fn planar_ring_area(ring: &[[f64; 2]]) -> f64 {
 fn area(topology: &TopoJSON, ring: &[i32]) -> f64 {
     if let FeatureGeometryType::Polygon { coordinates } = object_func(
         topology,
-        &Geometry {
-            geometry: GeometryType::Polygon {
-                arcs: vec![ring.to_vec()], // TODO: remove `to_vec`
-            },
+        &Geometry::Polygon {
+            arcs: vec![ring.to_vec()],
             id: None,
             properties: None,
             bbox: None,
@@ -40,7 +38,7 @@ fn area(topology: &TopoJSON, ring: &[i32]) -> f64 {
         planar_ring_area(&coordinates[0])
     } else {
         unreachable!(
-            "Object function with 'GeometryType::Polygon' must return 'FeatureGeometryType::Polygon'"
+            "Object function with 'Geometry::Polygon' must return 'FeatureGeometryType::Polygon'"
         )
     }
 }
@@ -77,11 +75,11 @@ struct MergeArcs<'a> {
 }
 
 impl<'a> MergeArcs<'a> {
-    fn call(topology: &TopoJSON, objects: &[Geometry]) -> Geometry {
+    fn call(topology: &TopoJSON, objects: &[&Geometry]) -> Geometry {
         MergeArcs::default().merge(topology, objects)
     }
 
-    fn merge(mut self, topology: &TopoJSON, objects: &'a [Geometry]) -> Geometry {
+    fn merge(mut self, topology: &TopoJSON, objects: &'a [&Geometry]) -> Geometry {
         objects.iter().for_each(|o| self.geometry(o));
 
         for polygon in self.polygons {
@@ -142,8 +140,8 @@ impl<'a> MergeArcs<'a> {
                 global_arcs.push(arcs);
             }
         }
-        Geometry {
-            geometry: GeometryType::MultiPolygon { arcs: global_arcs },
+        Geometry::MultiPolygon {
+            arcs: global_arcs,
             id: None,
             properties: None,
             bbox: None,
@@ -151,12 +149,12 @@ impl<'a> MergeArcs<'a> {
     }
 
     fn geometry(&mut self, o: &'a Geometry) {
-        match &o.geometry {
-            GeometryType::GeometryCollection { geometries } => {
+        match o {
+            Geometry::GeometryCollection { geometries, .. } => {
                 geometries.iter().for_each(|o| self.geometry(o))
             }
-            GeometryType::Polygon { arcs } => self.extract(arcs),
-            GeometryType::MultiPolygon { arcs } => {
+            Geometry::Polygon { arcs, .. } => self.extract(arcs),
+            Geometry::MultiPolygon { arcs, .. } => {
                 arcs.iter().for_each(|polygon| self.extract(polygon))
             }
             _ => (),
@@ -213,27 +211,21 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![0, 1]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![-1, 2]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::Polygon {
+                            arcs: vec![vec![0, 1]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![-1, 2]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,
@@ -245,9 +237,7 @@ mod tests {
                 vec![[1, 1], [2, 1], [2, 0], [1, 0]],
             ],
         };
-        if let GeometryType::GeometryCollection { geometries } =
-            &topology.objects["collection"].geometry
-        {
+        if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
             let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
@@ -282,27 +272,21 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![0]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![1]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::Polygon {
+                            arcs: vec![vec![0]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![1]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,
@@ -313,9 +297,7 @@ mod tests {
                 vec![[2, 0], [2, 1], [3, 1], [3, 0], [2, 0]],
             ],
         };
-        if let GeometryType::GeometryCollection { geometries } =
-            &topology.objects["collection"].geometry
-        {
+        if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
             let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
@@ -347,27 +329,21 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![0], vec![1]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![-2]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::Polygon {
+                            arcs: vec![vec![0], vec![1]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![-2]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,
@@ -378,9 +354,7 @@ mod tests {
                 vec![[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]],
             ],
         };
-        if let GeometryType::GeometryCollection { geometries } =
-            &topology.objects["collection"].geometry
-        {
+        if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
             let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
@@ -409,27 +383,21 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![0, 1], vec![2]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![-1, 3], vec![4]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::Polygon {
+                            arcs: vec![vec![0, 1], vec![2]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![-1, 3], vec![4]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,
@@ -443,9 +411,7 @@ mod tests {
                 vec![[4, 1], [5, 1], [5, 2], [4, 2], [4, 1]],
             ],
         };
-        if let GeometryType::GeometryCollection { geometries } =
-            &topology.objects["collection"].geometry
-        {
+        if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
             // Special case: since `HashMap` are unordered, the coordinates may be unordered too.
             // So instead of checking if coordinates are the same, the test checks if sub parts of
             // coordinates are present in final result
@@ -491,27 +457,21 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![0, 1, 2, 3]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![-3, 4, -1, 5]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::Polygon {
+                            arcs: vec![vec![0, 1, 2, 3]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![-3, 4, -1, 5]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,
@@ -526,9 +486,7 @@ mod tests {
                 vec![[2, 3], [4, 3], [4, 0], [2, 0]],
             ],
         };
-        if let GeometryType::GeometryCollection { geometries } =
-            &topology.objects["collection"].geometry
-        {
+        if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
             let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
@@ -576,43 +534,33 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![0, 1, 2, 3]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![-3, 4, -1, 5]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![6, -2]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::Polygon {
-                                    arcs: vec![vec![-7, -5]],
-                                },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::Polygon {
+                            arcs: vec![vec![0, 1, 2, 3]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![-3, 4, -1, 5]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![6, -2]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::Polygon {
+                            arcs: vec![vec![-7, -5]],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,
@@ -628,9 +576,7 @@ mod tests {
                 vec![[2, 2], [2, 1]],
             ],
         };
-        if let GeometryType::GeometryCollection { geometries } =
-            &topology.objects["collection"].geometry
-        {
+        if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
             let merge = wrap_merge(&topology, &geometries);
             assert_eq!(
                 merge,
