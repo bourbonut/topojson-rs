@@ -2,12 +2,13 @@ use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
 use crate::geojsons::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
-// use crate::mesh::wrap_mesh;
+use crate::mesh::wrap_mesh;
 use crate::neighbors::wrap_neighbors;
 use crate::quantize::wrap_quantize;
 use crate::topojsons::{Geometry, TopoJSON, Transform};
 use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;
+use pyo3::types::PyFunction;
 
 #[pyfunction]
 pub fn feature(topology: &TopoJSON, o: &Geometry) -> Feature {
@@ -19,15 +20,14 @@ pub fn merge(topology: &TopoJSON, objects: Vec<Geometry>) -> FeatureGeometryType
     wrap_merge(topology, objects.iter().collect::<Vec<_>>().as_slice())
 }
 
-// #[pyfunction]
-// pub fn mesh(
-//     topology: TopoJSON,
-//     object: Option<&Bound<'_, PyDict>>,
-//     filter: Option<&Bound<'_, PyFunction>>,
-// ) -> PyResult<FeatureGeometryType> {
-//     let object: Option<Geometry> = object.map(|o| o.extract()).transpose()?;
-//     wrap_mesh(&topology, object.as_ref(), filter)
-// }
+#[pyfunction]
+pub fn mesh(
+    topology: &TopoJSON,
+    object: Option<Geometry>,
+    filter: Option<&Bound<'_, PyFunction>>,
+) -> PyResult<FeatureGeometryType> {
+    wrap_mesh(topology, object.as_ref(), filter)
+}
 
 #[pyfunction]
 pub fn bbox(topology: &TopoJSON) -> [f64; 4] {
@@ -78,6 +78,26 @@ impl TopoJSON {
             })
             .collect::<PyResult<Vec<&Geometry>>>()?;
         Ok(wrap_merge(&self, &objects))
+    }
+
+    fn mesh(
+        &self,
+        key: Option<&str>,
+        filter: Option<&Bound<'_, PyFunction>>,
+    ) -> PyResult<FeatureGeometryType> {
+        match key {
+            Some(key) => {
+                if let Some(obj) = self.objects.get(key) {
+                    wrap_mesh(self, Some(obj), filter)
+                } else {
+                    Err(PyKeyError::new_err(format!(
+                        "Key '{}' not found in 'objects'",
+                        key
+                    )))
+                }
+            }
+            None => wrap_mesh(self, None, filter),
+        }
     }
 
     fn bbox(&self) -> [f64; 4] {

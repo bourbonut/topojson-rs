@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 
-use pyo3::{
-    Bound, PyResult,
-    types::{PyAnyMethods, PyFunction},
-};
+use pyo3::{Bound, PyResult, types::PyFunction}; // PyAnyMethods
 
 use crate::feature::object_func;
 use crate::geojsons::FeatureGeometryType;
 use crate::stitch::stitch;
-use crate::topojsons::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, TopoJSON};
 
 pub fn wrap_mesh(
     topology: &TopoJSON,
@@ -23,6 +20,7 @@ pub fn wrap_mesh(
 
 struct ArcItem<'a> {
     i: i32,
+    #[allow(unused)]
     geometry: &'a Geometry,
 }
 
@@ -49,10 +47,8 @@ impl<'a> MeshArcs<'a> {
             Some(object) => MeshArcs::default().extract(object, filter)?,
             None => (0..topology.arcs.len()).map(|x| x as i32).collect(),
         };
-        Ok(Geometry {
-            geometry: GeometryType::MultiLineString {
-                arcs: stitch(topology, arcs),
-            },
+        Ok(Geometry::MultiLineString {
+            arcs: stitch(topology, arcs),
             id: None,
             properties: None,
             bbox: None,
@@ -69,14 +65,17 @@ impl<'a> MeshArcs<'a> {
         let geoms_by_arc =
             (0..=self.geoms_by_arc.max_index).filter_map(|k| self.geoms_by_arc.hmap.get(&k));
         match filter {
-            Some(filter_func) => {
+            Some(_filter_func) => {
                 for geoms in geoms_by_arc {
-                    if filter_func
-                        .call1((geoms[0].geometry, geoms.last().unwrap().geometry))?
-                        .extract::<bool>()?
-                    {
-                        self.arcs.push(geoms[0].i);
-                    }
+                    // if filter_func
+                    //     .call1((geoms[0].geometry, geoms.last().unwrap().geometry))?
+                    //     .extract::<bool>()?
+                    // {
+                    //     self.arcs.push(geoms[0].i);
+                    // }
+
+                    // TODO: python filter
+                    self.arcs.push(geoms[0].i);
                 }
             }
             None => geoms_by_arc.for_each(|geoms| {
@@ -112,14 +111,14 @@ impl<'a> MeshArcs<'a> {
 
     fn geometry(&mut self, o: &'a Geometry) {
         self.geom = Some(o);
-        match &o.geometry {
-            GeometryType::GeometryCollection { geometries } => {
+        match o {
+            Geometry::GeometryCollection { geometries, .. } => {
                 geometries.iter().for_each(|o| self.geometry(o))
             }
-            GeometryType::LineString { arcs } => self.extract_1(arcs),
-            GeometryType::MultiLineString { arcs } => self.extract_2(arcs),
-            GeometryType::Polygon { arcs } => self.extract_2(arcs),
-            GeometryType::MultiPolygon { arcs } => self.extract_3(arcs),
+            Geometry::LineString { arcs, .. } => self.extract_1(arcs),
+            Geometry::MultiLineString { arcs, .. } => self.extract_2(arcs),
+            Geometry::Polygon { arcs, .. } => self.extract_2(arcs),
+            Geometry::MultiPolygon { arcs, .. } => self.extract_3(arcs),
             _ => (),
         }
     }
@@ -153,23 +152,21 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::LineString { arcs: vec![0] },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::LineString { arcs: vec![1] },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::LineString {
+                            arcs: vec![0],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::LineString {
+                            arcs: vec![1],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,
@@ -193,23 +190,21 @@ mod tests {
             transform: None,
             objects: HashMap::from_iter([(
                 "collection".to_string(),
-                Geometry {
-                    geometry: GeometryType::GeometryCollection {
-                        geometries: vec![
-                            Geometry {
-                                geometry: GeometryType::LineString { arcs: vec![0] },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                            Geometry {
-                                geometry: GeometryType::LineString { arcs: vec![1] },
-                                id: None,
-                                properties: None,
-                                bbox: None,
-                            },
-                        ],
-                    },
+                Geometry::GeometryCollection {
+                    geometries: vec![
+                        Geometry::LineString {
+                            arcs: vec![0],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                        Geometry::LineString {
+                            arcs: vec![1],
+                            id: None,
+                            properties: None,
+                            bbox: None,
+                        },
+                    ],
                     id: None,
                     properties: None,
                     bbox: None,

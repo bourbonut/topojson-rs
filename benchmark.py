@@ -63,6 +63,24 @@ def feature_python(filename, key):
     return wrapper
 
 
+def mesh_rust(filename, key, filt=None):
+    def wrapper():
+        topology = topojson.read(filename)
+        return topojson.mesh(topology, topology.objects[key], filter=filt)
+
+    return wrapper
+
+
+def mesh_python(filename, key, filt=None):
+    def wrapper():
+        with open(filename) as file:
+            topology = json.load(file)
+        obj = topology["objects"][key]
+        return Mesh()(topology, obj, filter=filt)
+
+    return wrapper
+
+
 def merge_rust(filename, key):
     def wrapper():
         topology = topojson.read(filename)
@@ -145,6 +163,12 @@ benchmark(
     "feature counties",
     feature_python("./counties-10m.json", "counties"),
     feature_rust("./counties-10m.json", "counties"),
+)
+
+benchmark(
+    "mesh counties",
+    mesh_python("./counties-10m.json", "counties"),
+    mesh_rust("./counties-10m.json", "counties"),
 )
 
 
