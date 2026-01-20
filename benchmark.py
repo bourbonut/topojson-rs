@@ -67,10 +67,16 @@ def compare(actual, expected):
         return result
     elif isinstance(actual, str):
         assert isinstance(expected, str)
-        # result = actual == expected
-        # assert result, f"{actual}, {expected}"
-        # return result
-        return True
+        try:
+            actual_dict = json.loads(actual)
+            expected_dict = json.loads(expected)
+            result = actual_dict == expected_dict
+            assert result, f"{actual_dict}, {expected_dict}"
+            return result
+        except json.decoder.JSONDecodeError:
+            result = actual == expected
+            assert result, f"{actual}, {expected}"
+            return result
     # TopoJSON
     elif check_struct(actual, ["bbox", "transform", "objects", "arcs"]):
         bbox_check = (
