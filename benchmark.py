@@ -81,6 +81,23 @@ def merge_python(filename, key):
     return wrapper
 
 
+def bbox_rust(filename):
+    def wrapper():
+        topology = topojson.read(filename)
+        return topojson.bbox(topology)
+
+    return wrapper
+
+
+def bbox_python(filename):
+    def wrapper():
+        with open(filename) as file:
+            topology = json.load(file)
+        return BBox()(topology)
+
+    return wrapper
+
+
 benchmark(
     "feature land",
     feature_python("./land-110m.json", "land"),
@@ -99,6 +116,12 @@ benchmark(
     "merge counties",
     merge_python("./counties-10m.json", "counties"),
     merge_rust("./counties-10m.json", "counties"),
+)
+
+benchmark(
+    "bbox counties",
+    bbox_python("./counties-10m.json"),
+    bbox_rust("./counties-10m.json"),
 )
 
 # topology = load_land()

@@ -238,7 +238,7 @@ mod tests {
             ],
         };
         if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
-            let merge = wrap_merge(&topology, &geometries);
+            let merge = wrap_merge(&topology, geometries.iter().collect::<Vec<_>>().as_slice());
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -298,7 +298,7 @@ mod tests {
             ],
         };
         if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
-            let merge = wrap_merge(&topology, &geometries);
+            let merge = wrap_merge(&topology, geometries.iter().collect::<Vec<_>>().as_slice());
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -355,7 +355,7 @@ mod tests {
             ],
         };
         if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
-            let merge = wrap_merge(&topology, &geometries);
+            let merge = wrap_merge(&topology, geometries.iter().collect::<Vec<_>>().as_slice());
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -416,7 +416,7 @@ mod tests {
             // So instead of checking if coordinates are the same, the test checks if sub parts of
             // coordinates are present in final result
             if let FeatureGeometryType::MultiPolygon { coordinates } =
-                wrap_merge(&topology, &geometries)
+                wrap_merge(&topology, geometries.iter().collect::<Vec<_>>().as_slice())
             {
                 for subpart in [
                     vec![
@@ -487,7 +487,7 @@ mod tests {
             ],
         };
         if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
-            let merge = wrap_merge(&topology, &geometries);
+            let merge = wrap_merge(&topology, geometries.iter().collect::<Vec<_>>().as_slice());
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {
@@ -577,7 +577,7 @@ mod tests {
             ],
         };
         if let Geometry::GeometryCollection { geometries, .. } = &topology.objects["collection"] {
-            let merge = wrap_merge(&topology, &geometries);
+            let merge = wrap_merge(&topology, geometries.iter().collect::<Vec<_>>().as_slice());
             assert_eq!(
                 merge,
                 FeatureGeometryType::MultiPolygon {

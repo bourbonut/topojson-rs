@@ -1,13 +1,13 @@
 mod api;
-// mod bbox;
+mod bbox;
 // mod bisect;
 mod feature;
 mod geojsons;
 mod merge;
 // mod mesh;
 // mod neighbors;
-// #[cfg(test)]
-// mod parser;
+#[cfg(test)]
+mod request;
 // mod quantize;
 mod reverse;
 mod stitch;
@@ -39,7 +39,7 @@ fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(api::feature, m)?)?;
     m.add_function(wrap_pyfunction!(api::merge, m)?)?;
     // m.add_function(wrap_pyfunction!(api::mesh, m)?)?;
-    // m.add_function(wrap_pyfunction!(api::bbox, m)?)?;
+    m.add_function(wrap_pyfunction!(api::bbox, m)?)?;
     // m.add_function(wrap_pyfunction!(api::neighbors, m)?)?;
     // m.add_function(wrap_pyfunction!(api::quantize, m)?)?;
     Ok(())

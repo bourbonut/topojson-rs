@@ -1,4 +1,4 @@
-// use crate::bbox::wrap_bbox;
+use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
 use crate::geojsons::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
@@ -28,12 +28,12 @@ pub fn merge(topology: &TopoJSON, objects: Vec<Geometry>) -> FeatureGeometryType
 //     let object: Option<Geometry> = object.map(|o| o.extract()).transpose()?;
 //     wrap_mesh(&topology, object.as_ref(), filter)
 // }
-//
-// #[pyfunction]
-// pub fn bbox(topology: TopoJSON) -> [f64; 4] {
-//     wrap_bbox(&topology)
-// }
-//
+
+#[pyfunction]
+pub fn bbox(topology: &TopoJSON) -> [f64; 4] {
+    wrap_bbox(topology)
+}
+
 // #[pyfunction]
 // pub fn neighbors(objects: Vec<Geometry>) -> PyResult<Vec<Vec<i32>>> {
 //     Ok(wrap_neighbors(&objects))
@@ -73,5 +73,9 @@ impl TopoJSON {
             })
             .collect::<PyResult<Vec<&Geometry>>>()?;
         Ok(wrap_merge(&self, &objects))
+    }
+
+    fn bbox(&self) -> [f64; 4] {
+        wrap_bbox(self)
     }
 }

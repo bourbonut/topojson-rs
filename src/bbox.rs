@@ -1,6 +1,6 @@
 use std::array::from_fn;
 
-use crate::topojsons::{Geometry, GeometryType, TopoJSON};
+use crate::topojsons::{Geometry, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
 pub fn wrap_bbox(topology: &TopoJSON) -> [f64; 4] {
@@ -67,12 +67,12 @@ impl<T: Transformer> Bbox<T> {
     }
 
     fn geometry(&mut self, o: &Geometry) {
-        match &o.geometry {
-            GeometryType::GeometryCollection { geometries } => {
+        match o {
+            Geometry::GeometryCollection { geometries, .. } => {
                 geometries.iter().for_each(|o| self.geometry(o))
             }
-            GeometryType::Point { coordinates } => self.point(coordinates),
-            GeometryType::MultiPoint { coordinates } => {
+            Geometry::Point { coordinates, .. } => self.point(coordinates),
+            Geometry::MultiPoint { coordinates, .. } => {
                 coordinates.iter().for_each(|p| self.point(p))
             }
             _ => (),
@@ -98,7 +98,7 @@ impl<T: Transformer> Bbox<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{json_parse, request};
+    use crate::request::request;
     use pyo3::prelude::PyResult;
     use std::collections::HashMap;
 
@@ -122,9 +122,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_bbox_2() -> Result<(), String> {
-        let topology = TopoJSON::try_from(json_parse(
-            request("test/topojson/polygon-q1e4.json").await?,
-        )?)?;
+        let topology =
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/polygon-q1e4.json").await?)
+                .unwrap();
         assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
@@ -132,14 +132,16 @@ mod tests {
     #[tokio::test]
     async fn test_bbox_3() -> Result<(), String> {
         let topology =
-            TopoJSON::try_from(json_parse(request("test/topojson/polygon.json").await?)?)?;
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/polygon.json").await?)
+                .unwrap();
         assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_bbox_4() -> Result<(), String> {
-        let topology = TopoJSON::try_from(json_parse(request("test/topojson/point.json").await?)?)?;
+        let topology =
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/point.json").await?).unwrap();
         assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
@@ -147,7 +149,7 @@ mod tests {
     #[tokio::test]
     async fn test_bbox_5() -> Result<(), String> {
         let topology =
-            TopoJSON::try_from(json_parse(request("test/topojson/points.json").await?)?)?;
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/points.json").await?).unwrap();
         assert_eq!(wrap_bbox(&topology), [0., 0., 10., 10.]);
         Ok(())
     }
