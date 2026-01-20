@@ -6,14 +6,14 @@ mod geojsons;
 mod merge;
 // mod mesh;
 mod neighbors;
+mod quantize;
 #[cfg(test)]
 mod request;
-// mod quantize;
 mod reverse;
 mod stitch;
 mod topojsons;
 mod transform;
-// mod untransform;
+mod untransform;
 
 use crate::geojsons::Feature;
 use crate::topojsons::TopoJSON;
@@ -41,6 +41,6 @@ fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // m.add_function(wrap_pyfunction!(api::mesh, m)?)?;
     m.add_function(wrap_pyfunction!(api::bbox, m)?)?;
     m.add_function(wrap_pyfunction!(api::neighbors, m)?)?;
-    // m.add_function(wrap_pyfunction!(api::quantize, m)?)?;
+    m.add_function(wrap_pyfunction!(api::quantize, m)?)?;
     Ok(())
 }

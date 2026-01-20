@@ -115,25 +115,44 @@ def neighbors_python(filename):
     return wrapper
 
 
-# benchmark(
-#     "feature land",
-#     feature_python("./land-110m.json", "land"),
-#     feature_rust("./land-110m.json", "land"),
-# )
-#
-#
-# benchmark(
-#     "feature counties",
-#     feature_python("./counties-10m.json", "counties"),
-#     feature_rust("./counties-10m.json", "counties"),
-# )
-#
-#
-# benchmark(
-#     "merge counties",
-#     merge_python("./counties-10m.json", "counties"),
-#     merge_rust("./counties-10m.json", "counties"),
-# )
+def quantize_rust(filename):
+    def wrapper():
+        topology = topojson.read(filename)
+        topology.transform = None
+        return topojson.quantize(topology, 1e4)
+
+    return wrapper
+
+
+def quantize_python(filename):
+    def wrapper():
+        with open(filename) as file:
+            topology = json.load(file)
+        topology.pop("transform")
+        return Quantize()(topology, 1e4)
+
+    return wrapper
+
+
+benchmark(
+    "feature land",
+    feature_python("./land-110m.json", "land"),
+    feature_rust("./land-110m.json", "land"),
+)
+
+
+benchmark(
+    "feature counties",
+    feature_python("./counties-10m.json", "counties"),
+    feature_rust("./counties-10m.json", "counties"),
+)
+
+
+benchmark(
+    "merge counties",
+    merge_python("./counties-10m.json", "counties"),
+    merge_rust("./counties-10m.json", "counties"),
+)
 
 benchmark(
     "bbox counties",
@@ -145,6 +164,12 @@ benchmark(
     "neighbors counties",
     neighbors_python("./counties-10m.json"),
     neighbors_rust("./counties-10m.json"),
+)
+
+benchmark(
+    "quantize counties",
+    quantize_python("./counties-10m.json"),
+    quantize_rust("./counties-10m.json"),
 )
 
 # topology = load_land()

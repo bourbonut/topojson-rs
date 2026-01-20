@@ -1,5 +1,5 @@
 use crate::bbox::bbox;
-use crate::topojsons::{Geometry, GeometryType, TopoJSON, Transform};
+use crate::topojsons::{Geometry, TopoJSON, Transform};
 use crate::untransform::ScaleUntransformer;
 
 use pyo3::PyResult;
@@ -87,30 +87,47 @@ impl Quantize {
     }
 
     fn quantize_geometry(&mut self, input: &Geometry) -> Geometry {
-        let quantized_geometry = match &input.geometry {
-            GeometryType::GeometryCollection { geometries } => GeometryType::GeometryCollection {
+        match input {
+            Geometry::GeometryCollection {
+                geometries,
+                id,
+                properties,
+                bbox,
+            } => Geometry::GeometryCollection {
                 geometries: geometries
                     .iter()
                     .map(|geometry| self.quantize_geometry(geometry))
                     .collect(),
+                id: id.clone(),
+                properties: properties.clone(),
+                bbox: bbox.clone(),
             },
-            GeometryType::Point { coordinates } => GeometryType::Point {
+            Geometry::Point {
+                coordinates,
+                id,
+                properties,
+                bbox,
+            } => Geometry::Point {
                 coordinates: self.quantize_point(coordinates),
+                id: id.clone(),
+                properties: properties.clone(),
+                bbox: bbox.clone(),
             },
-            GeometryType::MultiPoint { coordinates } => GeometryType::MultiPoint {
+            Geometry::MultiPoint {
+                coordinates,
+                id,
+                properties,
+                bbox,
+            } => Geometry::MultiPoint {
                 coordinates: coordinates
                     .iter()
                     .map(|point| self.quantize_point(point))
                     .collect(),
+                id: id.clone(),
+                properties: properties.clone(),
+                bbox: bbox.clone(),
             },
-            _ => return input.clone(),
-        };
-
-        Geometry {
-            geometry: quantized_geometry,
-            id: input.id.clone(),
-            properties: input.properties.clone(),
-            bbox: input.bbox.clone(),
+            _ => input.clone(),
         }
     }
 
@@ -138,7 +155,7 @@ impl Quantize {
 mod tests {
     use pyo3::Python;
 
-    use crate::parser::{json_parse, request};
+    use crate::request::request;
 
     use super::*;
 
@@ -147,9 +164,9 @@ mod tests {
         transform: &f64,
         expected_filetest: &str,
     ) -> Result<(), String> {
-        let topology = TopoJSON::try_from(json_parse(request(actual_filetest).await?)?)?;
-
-        let expected_topology = TopoJSON::try_from(json_parse(request(expected_filetest).await?)?)?;
+        let topology = serde_json::from_str::<TopoJSON>(&request(actual_filetest).await?).unwrap();
+        let expected_topology =
+            serde_json::from_str::<TopoJSON>(&request(expected_filetest).await?).unwrap();
         assert_eq!(
             wrap_quantize(&topology, transform)
                 .map_err(|e| format!("Error during quantize operation: {}", e.to_string()))?,
@@ -205,14 +222,15 @@ mod tests {
     #[tokio::test]
     async fn test_quantize_5() -> Result<(), String> {
         let mut before =
-            TopoJSON::try_from(json_parse(request("test/topojson/polygon.json").await?)?)?;
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/polygon.json").await?)
+                .unwrap();
         before.bbox.clear();
         let after = wrap_quantize(&before, &1e4)
             .map_err(|e| format!("Error during quantize operation: {}", e.to_string()))?;
 
-        let expected_topology = TopoJSON::try_from(json_parse(
-            request("test/topojson/polygon-q1e4.json").await?,
-        )?)?;
+        let expected_topology =
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/polygon-q1e4.json").await?)
+                .unwrap();
         assert_eq!(after, expected_topology);
         assert_eq!(after.bbox, vec![0., 0., 10., 10.]);
         assert_eq!(before.bbox, Vec::<f64>::new());
@@ -222,9 +240,9 @@ mod tests {
     #[tokio::test]
     async fn test_quantize_6() -> Result<(), String> {
         Python::initialize();
-        let topology = TopoJSON::try_from(json_parse(
-            request("test/topojson/polygon-q1e4.json").await?,
-        )?)?;
+        let topology =
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/polygon-q1e4.json").await?)
+                .unwrap();
         if let Err(py_runtime_error) = wrap_quantize(&topology, &1e4) {
             assert_eq!(
                 py_runtime_error.to_string(),
@@ -242,7 +260,8 @@ mod tests {
     async fn test_quantize_7() -> Result<(), String> {
         Python::initialize();
         let topology =
-            TopoJSON::try_from(json_parse(request("test/topojson/polygon.json").await?)?)?;
+            serde_json::from_str::<TopoJSON>(&request("test/topojson/polygon.json").await?)
+                .unwrap();
         for transform in [0., 1.5, f64::NAN, -2.] {
             if let Err(py_runtime_error) = wrap_quantize(&topology, &transform) {
                 assert_eq!(

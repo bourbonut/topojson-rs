@@ -4,7 +4,7 @@ use crate::geojsons::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
 // use crate::mesh::wrap_mesh;
 use crate::neighbors::wrap_neighbors;
-// use crate::quantize::wrap_quantize;
+use crate::quantize::wrap_quantize;
 use crate::topojsons::{Geometry, TopoJSON, Transform};
 use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;
@@ -39,16 +39,21 @@ pub fn neighbors(objects: Vec<Geometry>) -> Vec<Vec<i32>> {
     wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice())
 }
 
-// #[pyfunction]
-// pub fn quantize(topology: TopoJSON, transform: f64) -> PyResult<TopoJSON> {
-//     wrap_quantize(&topology, &transform)
-// }
+#[pyfunction]
+pub fn quantize(topology: &TopoJSON, transform: f64) -> PyResult<TopoJSON> {
+    wrap_quantize(&topology, &transform)
+}
 
 #[pymethods]
 impl TopoJSON {
-    #[getter]
+    #[getter(transform)]
     fn transform(&self) -> Option<Transform> {
         self.transform.clone()
+    }
+
+    #[setter(transform)]
+    fn set_transform(&mut self, new_transform: Option<Transform>) {
+        self.transform = new_transform;
     }
 
     fn feature(&self, key: &str) -> PyResult<Feature> {
@@ -90,5 +95,9 @@ impl TopoJSON {
             })
             .collect::<PyResult<Vec<&Geometry>>>()?;
         Ok(wrap_neighbors(&objects))
+    }
+
+    fn quantize(&self, transform: f64) -> PyResult<TopoJSON> {
+        wrap_quantize(self, &transform)
     }
 }
