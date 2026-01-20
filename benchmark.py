@@ -98,30 +98,53 @@ def bbox_python(filename):
     return wrapper
 
 
-benchmark(
-    "feature land",
-    feature_python("./land-110m.json", "land"),
-    feature_rust("./land-110m.json", "land"),
-)
+def neighbors_rust(filename):
+    def wrapper():
+        topology = topojson.read(filename)
+        return topojson.neighbors(list(topology.objects.values()))
+
+    return wrapper
 
 
-benchmark(
-    "feature counties",
-    feature_python("./counties-10m.json", "counties"),
-    feature_rust("./counties-10m.json", "counties"),
-)
+def neighbors_python(filename):
+    def wrapper():
+        with open(filename) as file:
+            topology = json.load(file)
+        return Neighbors()(list(topology["objects"].values()))
+
+    return wrapper
 
 
-benchmark(
-    "merge counties",
-    merge_python("./counties-10m.json", "counties"),
-    merge_rust("./counties-10m.json", "counties"),
-)
+# benchmark(
+#     "feature land",
+#     feature_python("./land-110m.json", "land"),
+#     feature_rust("./land-110m.json", "land"),
+# )
+#
+#
+# benchmark(
+#     "feature counties",
+#     feature_python("./counties-10m.json", "counties"),
+#     feature_rust("./counties-10m.json", "counties"),
+# )
+#
+#
+# benchmark(
+#     "merge counties",
+#     merge_python("./counties-10m.json", "counties"),
+#     merge_rust("./counties-10m.json", "counties"),
+# )
 
 benchmark(
     "bbox counties",
     bbox_python("./counties-10m.json"),
     bbox_rust("./counties-10m.json"),
+)
+
+benchmark(
+    "neighbors counties",
+    neighbors_python("./counties-10m.json"),
+    neighbors_rust("./counties-10m.json"),
 )
 
 # topology = load_land()

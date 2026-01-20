@@ -3,7 +3,7 @@ use crate::feature::wrap_feature;
 use crate::geojsons::{Feature, FeatureGeometryType};
 use crate::merge::wrap_merge;
 // use crate::mesh::wrap_mesh;
-// use crate::neighbors::wrap_neighbors;
+use crate::neighbors::wrap_neighbors;
 // use crate::quantize::wrap_quantize;
 use crate::topojsons::{Geometry, TopoJSON, Transform};
 use pyo3::exceptions::PyKeyError;
@@ -34,11 +34,11 @@ pub fn bbox(topology: &TopoJSON) -> [f64; 4] {
     wrap_bbox(topology)
 }
 
-// #[pyfunction]
-// pub fn neighbors(objects: Vec<Geometry>) -> PyResult<Vec<Vec<i32>>> {
-//     Ok(wrap_neighbors(&objects))
-// }
-//
+#[pyfunction]
+pub fn neighbors(objects: Vec<Geometry>) -> Vec<Vec<i32>> {
+    wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice())
+}
+
 // #[pyfunction]
 // pub fn quantize(topology: TopoJSON, transform: f64) -> PyResult<TopoJSON> {
 //     wrap_quantize(&topology, &transform)
@@ -77,5 +77,18 @@ impl TopoJSON {
 
     fn bbox(&self) -> [f64; 4] {
         wrap_bbox(self)
+    }
+
+    fn neighbors(&self, keys: Vec<String>) -> PyResult<Vec<Vec<i32>>> {
+        let objects: Vec<&Geometry> = keys
+            .iter()
+            .map(|key| {
+                self.objects.get(key).ok_or(PyKeyError::new_err(format!(
+                    "Key '{}' not found in 'objects'",
+                    key
+                )))
+            })
+            .collect::<PyResult<Vec<&Geometry>>>()?;
+        Ok(wrap_neighbors(&objects))
     }
 }

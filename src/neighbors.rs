@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::bisect::bisect;
-use crate::topojsons::{Geometry, GeometryType};
+use crate::topojsons::Geometry;
 
-pub fn wrap_neighbors(objects: &[Geometry]) -> Vec<Vec<i32>> {
+pub fn wrap_neighbors(objects: &[&Geometry]) -> Vec<Vec<i32>> {
     Neighbors::call(objects)
 }
 
@@ -13,11 +13,11 @@ struct Neighbors {
 }
 
 impl Neighbors {
-    fn call(objects: &[Geometry]) -> Vec<Vec<i32>> {
+    fn call(objects: &[&Geometry]) -> Vec<Vec<i32>> {
         Neighbors::new(objects.len()).neighbors(objects)
     }
 
-    fn neighbors(mut self, objects: &[Geometry]) -> Vec<Vec<i32>> {
+    fn neighbors(mut self, objects: &[&Geometry]) -> Vec<Vec<i32>> {
         objects
             .iter()
             .enumerate()
@@ -74,14 +74,14 @@ impl Neighbors {
     }
 
     fn geometry(&mut self, o: &Geometry, i: usize) {
-        match &o.geometry {
-            GeometryType::GeometryCollection { geometries } => {
+        match o {
+            Geometry::GeometryCollection { geometries, .. } => {
                 geometries.iter().for_each(|o| self.geometry(o, i))
             }
-            GeometryType::LineString { arcs } => self.line(arcs, i),
-            GeometryType::MultiLineString { arcs } => self.polygon(arcs, i),
-            GeometryType::Polygon { arcs } => self.polygon(arcs, i),
-            GeometryType::MultiPolygon { arcs } => arcs.iter().for_each(|arc| self.polygon(arc, i)),
+            Geometry::LineString { arcs, .. } => self.line(arcs, i),
+            Geometry::MultiLineString { arcs, .. } => self.polygon(arcs, i),
+            Geometry::Polygon { arcs, .. } => self.polygon(arcs, i),
+            Geometry::MultiPolygon { arcs, .. } => arcs.iter().for_each(|arc| self.polygon(arc, i)),
             _ => panic!("Invalid geometry type used during neighbors operation"),
         }
     }
@@ -104,15 +104,18 @@ mod tests {
     #[test]
     fn test_neighbors_2() {
         let objects: Vec<Geometry> = [vec![0], vec![1]]
-            .map(|arcs| Geometry {
-                geometry: GeometryType::LineString { arcs },
+            .map(|arcs| Geometry::LineString {
+                arcs,
                 id: None,
                 properties: None,
                 bbox: None,
             })
             .into_iter()
             .collect();
-        assert_eq!(wrap_neighbors(&objects), vec![Vec::<i32>::new(); 2]);
+        assert_eq!(
+            wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice()),
+            vec![Vec::<i32>::new(); 2]
+        );
     }
 
     //
@@ -121,15 +124,18 @@ mod tests {
     #[test]
     fn test_neighbors_3() {
         let objects: Vec<Geometry> = [vec![0, 1], vec![1, 2]]
-            .map(|arcs| Geometry {
-                geometry: GeometryType::LineString { arcs },
+            .map(|arcs| Geometry::LineString {
+                arcs,
                 id: None,
                 properties: None,
                 bbox: None,
             })
             .into_iter()
             .collect();
-        assert_eq!(wrap_neighbors(&objects), vec![vec![1], vec![0]]);
+        assert_eq!(
+            wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice()),
+            vec![vec![1], vec![0]]
+        );
     }
 
     //
@@ -138,15 +144,18 @@ mod tests {
     #[test]
     fn test_neighbors_4() {
         let objects: Vec<Geometry> = [vec![0, 1], vec![2, -2]]
-            .map(|arcs| Geometry {
-                geometry: GeometryType::LineString { arcs },
+            .map(|arcs| Geometry::LineString {
+                arcs,
                 id: None,
                 properties: None,
                 bbox: None,
             })
             .into_iter()
             .collect();
-        assert_eq!(wrap_neighbors(&objects), vec![vec![1], vec![0]]);
+        assert_eq!(
+            wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice()),
+            vec![vec![1], vec![0]]
+        );
     }
 
     //
@@ -162,8 +171,8 @@ mod tests {
             vec![-4, -3, -2],
             vec![-5, -4, -3],
         ]
-        .map(|arcs| Geometry {
-            geometry: GeometryType::LineString { arcs },
+        .map(|arcs| Geometry::LineString {
+            arcs,
             id: None,
             properties: None,
             bbox: None,
@@ -171,7 +180,7 @@ mod tests {
         .into_iter()
         .collect();
         assert_eq!(
-            wrap_neighbors(&objects),
+            wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice()),
             vec![
                 vec![1, 2, 3, 4, 5],
                 vec![0, 2, 3, 4, 5],
@@ -195,15 +204,18 @@ mod tests {
     #[test]
     fn test_neighbors_6() {
         let objects: Vec<Geometry> = [vec![vec![0, 1]], vec![vec![2, -1]], vec![vec![3]]]
-            .map(|arcs| Geometry {
-                geometry: GeometryType::Polygon { arcs },
+            .map(|arcs| Geometry::Polygon {
+                arcs,
                 id: None,
                 properties: None,
                 bbox: None,
             })
             .into_iter()
             .collect();
-        assert_eq!(wrap_neighbors(&objects), vec![vec![1], vec![0], vec![]]);
+        assert_eq!(
+            wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice()),
+            vec![vec![1], vec![0], vec![]]
+        );
     }
 
     //
@@ -221,14 +233,17 @@ mod tests {
     #[test]
     fn test_neighbors_7() {
         let objects: Vec<Geometry> = [vec![vec![0, 1, 2, 3]], vec![vec![4, -3, 5, -1]]]
-            .map(|arcs| Geometry {
-                geometry: GeometryType::Polygon { arcs },
+            .map(|arcs| Geometry::Polygon {
+                arcs,
                 id: None,
                 properties: None,
                 bbox: None,
             })
             .into_iter()
             .collect();
-        assert_eq!(wrap_neighbors(&objects), vec![vec![1], vec![0]]);
+        assert_eq!(
+            wrap_neighbors(objects.iter().collect::<Vec<_>>().as_slice()),
+            vec![vec![1], vec![0]]
+        );
     }
 }
