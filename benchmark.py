@@ -334,7 +334,9 @@ def bbox_python(filename):
 def neighbors_rust(filename):
     def wrapper():
         topology = topojson.read(filename)
-        return topojson.neighbors(list(topology.objects.values()))
+        return topojson.neighbors(
+            [topology.objects[key] for key in ["counties", "nation", "states"]]
+        )
 
     return wrapper
 
@@ -343,7 +345,9 @@ def neighbors_python(filename):
     def wrapper():
         with open(filename) as file:
             topology = json.load(file)
-        return Neighbors()(list(topology["objects"].values()))
+        return Neighbors()(
+            [topology["objects"][key] for key in ["counties", "nation", "states"]]
+        )
 
     return wrapper
 
