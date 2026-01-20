@@ -20,20 +20,29 @@ Then don't forget to activate the environment.
 ```py
 import topojson
 
-land = topology["objects"]["land"]
+topology = topojson.read(file)
+
+land = topology.objects["land"]
 
 features = topojson.feature(topology, land)
-mesh = topojson.mesh(topology, land, filter=None)
+features = topology.feature("land")
 
-objects = topology["objects"]["counties"]["geometries"]
+mesh = topojson.mesh(topology, land, filter=None)
+mesh = topology.mesh("land", filter=None)
+
+objects = topology.objects["counties"].geometries
 merge = topojson.merge(objects)
+merge = topology.merge("counties")
 
 objects = list(topology["objects"].values())
 neighbors = topojson.neighbors(objects)
+neighbors = topology.neighbors(list(topology["objects"].keys()))
 
 bbox = topojson.bbox(topology)
+bbox = topology.compute_bbox()
 
-quantize topojson.quantize(topology, 1e4)
+quantize = topojson.quantize(topology, 1e4)
+quantize = topology.quantize(1e4)
 ```
 
 ## Benchmarks
