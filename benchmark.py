@@ -396,6 +396,18 @@ benchmark(
 )
 
 benchmark(
+    "mesh land",
+    mesh_python("./land-110m.json", "land"),
+    mesh_rust("./land-110m.json", "land"),
+)
+
+benchmark(
+    "mesh states",
+    mesh_python("./states-10m.json", "states"),
+    mesh_rust("./states-10m.json", "states"),
+)
+
+benchmark(
     "mesh counties",
     mesh_python("./counties-10m.json", "counties"),
     mesh_rust("./counties-10m.json", "counties"),
