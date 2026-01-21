@@ -1,4 +1,4 @@
-use indexmap::{IndexMap, map::Values};
+use indexmap::IndexMap;
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
 use crate::topojsons::TopoJSON;
@@ -184,20 +184,24 @@ impl Stitch {
     }
 
     fn flush(&mut self) {
-        let mut process_fragments =
-            |fragments: Values<[i32; 2], Rc<RefCell<Fragment>>>,
-             other_map: &mut IndexMap<[i32; 2], Rc<RefCell<Fragment>>>| {
-                fragments.for_each(|f| {
-                    let start = f.borrow().start;
-                    other_map.shift_remove(&start);
-                    f.borrow().arcs.iter().for_each(|&i| {
-                        self.stitched_arcs.insert(arc_index(i));
-                    });
-                    self.fragments.push(f.borrow().arcs.to_vec());
-                });
-            };
-        process_fragments(self.fragment_by_end.values(), &mut self.fragment_by_start);
-        process_fragments(self.fragment_by_start.values(), &mut self.fragment_by_end);
+        let mut banned_starts = HashSet::new();
+        for (_, fragment) in self.fragment_by_end.drain(..) {
+            let borrowed = fragment.borrow();
+            banned_starts.insert(borrowed.start);
+            self.stitched_arcs
+                .extend(borrowed.arcs.iter().map(|&i| arc_index(i)));
+            self.fragments.push(borrowed.arcs.clone());
+        }
+
+        for (_, fragment) in self.fragment_by_start.drain(..) {
+            let borrowed = fragment.borrow();
+            if banned_starts.contains(&borrowed.start) {
+                continue;
+            }
+            self.stitched_arcs
+                .extend(borrowed.arcs.iter().map(|&i| arc_index(i)));
+            self.fragments.push(borrowed.arcs.clone());
+        }
     }
 }
 
