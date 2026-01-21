@@ -109,21 +109,30 @@ impl Stitch {
         }
 
         for i in arcs.iter() {
-            let (start, end) = self.ends(topology, i);
+            let [start, end] = self.ends(topology, i);
 
             if let Some(f) = self.fragment_by_end.get(&start).cloned() {
-                self.fragment_by_end.shift_remove(&f.borrow().end);
+                let [f_start, f_end] = {
+                    let borrowed = f.borrow();
+                    [borrowed.start, borrowed.end]
+                };
+                self.fragment_by_end.shift_remove(&f_end);
                 {
-                    f.borrow_mut().push(*i);
-                    f.borrow_mut().end = end;
+                    let mut borrowed_mut = f.borrow_mut();
+                    borrowed_mut.push(*i);
+                    borrowed_mut.end = end;
                 }
 
                 if let Some(g) = self.fragment_by_start.get(&end).cloned() {
-                    self.fragment_by_start.shift_remove(&g.borrow().start);
+                    let [g_start, g_end] = {
+                        let borrowed = g.borrow();
+                        [borrowed.start, borrowed.end]
+                    };
+                    self.fragment_by_start.shift_remove(&g_start);
 
-                    let start = f.borrow().start;
-                    let end = g.borrow().end;
-                    let fg = if f == g {
+                    let start = f_start;
+                    let end = g_end;
+                    let fg = if Rc::ptr_eq(&f, &g) {
                         f.clone()
                     } else {
                         f.add_fragment(&g)
@@ -133,18 +142,27 @@ impl Stitch {
                     self.replace(f.clone());
                 }
             } else if let Some(f) = self.fragment_by_start.get(&end).cloned() {
-                self.fragment_by_start.shift_remove(&f.borrow().start);
+                let [f_start, f_end] = {
+                    let borrowed = f.borrow();
+                    [borrowed.start, borrowed.end]
+                };
+                self.fragment_by_start.shift_remove(&f_start);
                 {
-                    f.borrow_mut().unshift(*i);
-                    f.borrow_mut().start = start;
+                    let mut borrowed_mut = f.borrow_mut();
+                    borrowed_mut.unshift(*i);
+                    borrowed_mut.start = start;
                 }
 
                 if let Some(g) = self.fragment_by_end.get(&start).cloned() {
-                    self.fragment_by_end.shift_remove(&g.borrow().end);
+                    let [g_start, g_end] = {
+                        let borrowed = g.borrow();
+                        [borrowed.start, borrowed.end]
+                    };
+                    self.fragment_by_end.shift_remove(&g_end);
 
-                    let start = g.borrow().start;
-                    let end = f.borrow().end;
-                    let gf = if g == f {
+                    let start = g_start;
+                    let end = f_end;
+                    let gf = if Rc::ptr_eq(&g, &f) {
                         f.clone()
                     } else {
                         g.add_fragment(&f)
@@ -166,21 +184,19 @@ impl Stitch {
         self.fragments
     }
 
-    fn ends(&self, topology: &TopoJSON, &i: &i32) -> ([i32; 2], [i32; 2]) {
-        let arc = &topology.arcs[if i < 0 { !i as usize } else { i as usize }];
-        let first = arc.first().unwrap();
-        let p0: [i32; 2] = std::array::from_fn(|i| first[i]);
+    fn ends(&self, topology: &TopoJSON, &i: &i32) -> [[i32; 2]; 2] {
+        let arc = &topology.arcs[if i < 0 { !i } else { i } as usize];
+        let p0 = *arc.first().unwrap();
 
-        let p1: [i32; 2] = if topology.transform.is_some() {
+        let p1 = if topology.transform.is_some() {
             [
-                arc.iter().map(|x| x[0]).reduce(|a, b| a + b).unwrap(),
-                arc.iter().map(|x| x[1]).reduce(|a, b| a + b).unwrap(),
+                arc.iter().map(|x| x[0]).sum(),
+                arc.iter().map(|x| x[1]).sum(),
             ]
         } else {
-            let last = arc.last().unwrap();
-            std::array::from_fn(|i| last[i])
+            *arc.last().unwrap()
         };
-        if i < 0 { (p1, p0) } else { (p0, p1) }
+        if i < 0 { [p1, p0] } else { [p0, p1] }
     }
 
     fn flush(&mut self) {
