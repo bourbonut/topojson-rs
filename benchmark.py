@@ -414,6 +414,19 @@ benchmark(
 )
 
 benchmark(
+    "merge land",
+    merge_python("./land-110m.json", "land"),
+    merge_rust("./land-110m.json", "land"),
+)
+
+benchmark(
+    "merge states",
+    merge_python("./states-10m.json", "states"),
+    merge_rust("./states-10m.json", "states"),
+)
+
+
+benchmark(
     "merge counties",
     merge_python("./counties-10m.json", "counties"),
     merge_rust("./counties-10m.json", "counties"),
