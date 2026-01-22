@@ -168,11 +168,12 @@ impl<'a> MergeArcs<'a> {
                 let arc = if arc < 0 { !arc } else { arc } as usize;
                 self.polygons_by_arcs
                     .entry(arc)
-                    .and_modify(|polygons| polygons.push(marked_polygon.clone()))
-                    .or_insert(vec![marked_polygon.clone()]);
+                    .or_insert_with(Vec::new)
+                    .push(marked_polygon.clone());
             });
         });
-        self.polygons.push(marked_polygon.clone());
+
+        self.polygons.push(marked_polygon);
     }
 }
 
