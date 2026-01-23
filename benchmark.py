@@ -2,13 +2,14 @@ import json
 from math import isclose
 from time import perf_counter
 
-import topojson
 from pytopojson.bbox import BBox
 from pytopojson.feature import Feature
 from pytopojson.merge import Merge
 from pytopojson.mesh import Mesh
 from pytopojson.neighbors import Neighbors
 from pytopojson.quantize import Quantize
+
+import topojson
 
 
 def load_land():
