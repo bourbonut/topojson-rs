@@ -1,3 +1,17 @@
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
+
+[project]
+name = "topojson_rs"
+version = "0.2"
+description = "Implementation of topojson-client in Rust for creating native Python extension."
+readme = "README.md"
+authors = [
+  { name = "Benjamin BOURBON", email = "ben.bourbon06@gmail.com"},
+]
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage="https://github.com/bourbonut/topojson-rs"
+Repository="https://github.com/bourbonut/topojson-rs"
