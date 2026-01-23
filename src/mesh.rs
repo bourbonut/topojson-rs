@@ -92,8 +92,8 @@ impl<'a> MeshArcs<'a> {
         self.geoms_by_arc
             .hmap
             .entry(j)
-            .and_modify(|vec| vec.push(ArcItem { i, geometry: geom }))
-            .or_insert(vec![ArcItem { i, geometry: geom }]);
+            .or_default()
+            .push(ArcItem { i, geometry: geom });
         self.geoms_by_arc.max_index = self.geoms_by_arc.max_index.max(j)
     }
 

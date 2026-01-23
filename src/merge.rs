@@ -168,7 +168,7 @@ impl<'a> MergeArcs<'a> {
                 let arc = if arc < 0 { !arc } else { arc } as usize;
                 self.polygons_by_arcs
                     .entry(arc)
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(marked_polygon.clone());
             });
         });

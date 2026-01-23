@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use crate::bisect::bisect;
 use crate::topojsons::Geometry;
@@ -8,7 +8,7 @@ pub fn wrap_neighbors(objects: &[&Geometry]) -> Vec<Vec<i32>> {
 }
 
 struct Neighbors {
-    indexes_by_arc: HashMap<usize, Vec<usize>>,
+    indexes_by_arc: FxHashMap<usize, Vec<usize>>,
     neighbors: Vec<Vec<i32>>,
 }
 
@@ -54,18 +54,15 @@ impl Neighbors {
 
     fn new(len_objects: usize) -> Self {
         Self {
-            indexes_by_arc: HashMap::new(),
-            neighbors: vec![Vec::new(); len_objects],
+            indexes_by_arc: FxHashMap::default(),
+            neighbors: vec![Vec::default(); len_objects],
         }
     }
 
     fn line(&mut self, arcs: &[i32], i: usize) {
         arcs.iter().for_each(|&a| {
             let a = if a < 0 { !a } else { a } as usize;
-            self.indexes_by_arc
-                .entry(a)
-                .and_modify(|o| o.push(i))
-                .or_insert(vec![i]);
+            self.indexes_by_arc.entry(a).or_default().push(i);
         });
     }
 

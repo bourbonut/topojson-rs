@@ -350,20 +350,16 @@ def bbox_python():
     return wrapper
 
 
-def neighbors_rust():
+def neighbors_rust(ordered_keys):
     def wrapper(topology):
-        return topojson.neighbors(
-            [topology.objects[key] for key in ["counties", "nation", "states"]]
-        )
+        return topojson.neighbors([topology.objects[key] for key in ordered_keys])
 
     return wrapper
 
 
-def neighbors_python():
+def neighbors_python(ordered_keys):
     def wrapper(topology):
-        return Neighbors()(
-            [topology["objects"][key] for key in ["counties", "nation", "states"]]
-        )
+        return Neighbors()([topology["objects"][key] for key in ordered_keys])
 
     return wrapper
 
@@ -482,11 +478,27 @@ benchmark(
 )
 
 benchmark(
+    "neighbors land",
+    py_load_file("./land-110m.json"),
+    rs_load_file("./land-110m.json"),
+    neighbors_python(["land"]),
+    neighbors_rust(["land"]),
+)
+
+benchmark(
+    "neighbors states",
+    py_load_file("./states-10m.json"),
+    rs_load_file("./states-10m.json"),
+    neighbors_python(["states", "nation"]),
+    neighbors_rust(["states", "nation"]),
+)
+
+benchmark(
     "neighbors counties",
     py_load_file("./counties-10m.json"),
     rs_load_file("./counties-10m.json"),
-    neighbors_python(),
-    neighbors_rust(),
+    neighbors_python(["counties", "nation", "states"]),
+    neighbors_rust(["counties", "nation", "states"]),
 )
 
 benchmark(
