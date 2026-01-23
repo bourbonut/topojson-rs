@@ -1,5 +1,3 @@
-use std::array::from_fn;
-
 use crate::topojsons::{Geometry, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
@@ -43,7 +41,7 @@ impl<T: Transformer> Bbox<T> {
     pub fn bbox(mut self, topology: &TopoJSON) -> [f64; 4] {
         topology.arcs.iter().for_each(|arc_vec| {
             for (i, arc) in arc_vec.iter().enumerate() {
-                let p = self.transformer.call(&from_fn(|i| arc[i] as f64), i);
+                let p = self.transformer.call(&arc.map(|x| x as f64), i);
                 if p[0] < self.x0 {
                     self.x0 = p[0];
                 }
