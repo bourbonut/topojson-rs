@@ -2,21 +2,21 @@ use pyo3::prelude::*;
 
 #[pyclass]
 #[derive(Debug, PartialEq)]
-pub enum Feature {
+pub enum GeoJSON {
     Collection(FeatureCollection),
-    Item(FeatureItem),
+    Item(Feature),
 }
 
 #[pyclass]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FeatureCollection {
     #[pyo3(get)]
-    pub features: Vec<FeatureItem>,
+    pub features: Vec<Feature>,
 }
 
 #[pyclass]
 #[derive(Debug, PartialEq, Clone)]
-pub struct FeatureItem {
+pub struct Feature {
     #[pyo3(get)]
     pub properties: Option<String>,
     #[pyo3(get)]

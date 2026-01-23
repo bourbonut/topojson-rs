@@ -1,18 +1,18 @@
-use crate::geojsons::{Feature, FeatureCollection, FeatureGeometryType, FeatureItem};
+use crate::geojsons::{Feature, FeatureCollection, FeatureGeometryType, GeoJSON};
 use crate::reverse::reverse;
 use crate::topojsons::{Geometry, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 
-pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> Feature {
+pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> GeoJSON {
     match &o {
         Geometry::GeometryCollection { geometries, .. } => {
-            let features: Vec<FeatureItem> = geometries
+            let features: Vec<Feature> = geometries
                 .iter()
                 .map(|o| feature_item(topology, o))
                 .collect();
-            Feature::Collection(FeatureCollection { features })
+            GeoJSON::Collection(FeatureCollection { features })
         }
-        _ => Feature::Item(feature_item(topology, o)),
+        _ => GeoJSON::Item(feature_item(topology, o)),
     }
 }
 
@@ -23,12 +23,12 @@ pub fn object_func(topology: &TopoJSON, o: &Geometry) -> FeatureGeometryType {
     }
 }
 
-fn feature_item(topology: &TopoJSON, o: &Geometry) -> FeatureItem {
+fn feature_item(topology: &TopoJSON, o: &Geometry) -> Feature {
     let geometry = object_func(topology, o);
     let id = o.id();
     let bbox = o.bbox();
     let properties = o.properties();
-    FeatureItem {
+    Feature {
         id,
         bbox,
         properties,
@@ -158,7 +158,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature_item) = wrap_feature(&t, &t.objects["foo"]) {
+        if let GeoJSON::Item(feature_item) = wrap_feature(&t, &t.objects["foo"]) {
             assert!(matches!(
                 feature_item.geometry,
                 FeatureGeometryType::Polygon { .. }
@@ -179,7 +179,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::Point {
                     coordinates: [0., 0.]
@@ -201,7 +201,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::MultiPoint {
                     coordinates: vec![[0., 0.]]
@@ -223,7 +223,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
                     coordinates: vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]
@@ -245,7 +245,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::MultiLineString {
                     coordinates: vec![vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]]
@@ -267,7 +267,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
                     coordinates: vec![[1., 1.], [1., 1.]]
@@ -286,7 +286,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::MultiLineString {
                     coordinates: vec![vec![[1., 1.], [1., 1.]], vec![[0., 0.], [0., 0.]]]
@@ -308,7 +308,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::Polygon {
                     coordinates: vec![vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]]
@@ -330,7 +330,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::MultiPolygon {
                     coordinates: vec![vec![vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]]]
@@ -372,7 +372,7 @@ mod tests {
             arcs: vec![vec![[0, 0], [1, 1]], vec![[1, 1], [-1, -1]]],
         };
 
-        if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["foo"]) {
+        if let GeoJSON::Item(feature) = wrap_feature(&topology, &topology.objects["foo"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -385,7 +385,7 @@ mod tests {
             panic!("Feature of 'foo' must be variant of 'Item'.")
         }
 
-        if let Feature::Item(feature) = wrap_feature(&topology, &topology.objects["bar"]) {
+        if let GeoJSON::Item(feature) = wrap_feature(&topology, &topology.objects["bar"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -415,8 +415,8 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Collection(FeatureCollection {
-                features: vec![FeatureItem {
+            GeoJSON::Collection(FeatureCollection {
+                features: vec![Feature {
                     properties: None,
                     geometry: FeatureGeometryType::MultiPolygon {
                         coordinates: vec![vec![vec![
@@ -450,8 +450,8 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Collection(FeatureCollection {
-                features: vec![FeatureItem {
+            GeoJSON::Collection(FeatureCollection {
+                features: vec![Feature {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
                         coordinates: [0., 0.]
@@ -479,8 +479,8 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Collection(FeatureCollection {
-                features: vec![FeatureItem {
+            GeoJSON::Collection(FeatureCollection {
+                features: vec![Feature {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
                         coordinates: [0., 0.]
@@ -508,8 +508,8 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Collection(FeatureCollection {
-                features: vec![FeatureItem {
+            GeoJSON::Collection(FeatureCollection {
+                features: vec![Feature {
                     properties: Some("{'name': 'feature'}".to_string()),
                     geometry: FeatureGeometryType::Point {
                         coordinates: [0., 0.]
@@ -529,7 +529,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
+        if let GeoJSON::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             assert_eq!(feature.id, Some("foo".to_string()));
         } else {
             panic!("Feature must be variant of 'Item'.")
@@ -545,7 +545,7 @@ mod tests {
 
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
+        if let GeoJSON::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             assert_eq!(feature.properties, Some("{'name': 'property'}".to_string()));
         } else {
             panic!("Feature must be variant of 'Item'.")
@@ -560,7 +560,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
+        if let GeoJSON::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             assert_eq!(feature.id, None);
             assert_eq!(feature.properties, None);
         } else {
@@ -576,7 +576,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
+        if let GeoJSON::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -598,7 +598,7 @@ mod tests {
             properties: None,
             bbox: None,
         });
-        if let Feature::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
+        if let GeoJSON::Item(feature) = wrap_feature(&t, &t.objects["foo"]) {
             if let FeatureGeometryType::Polygon { coordinates } = feature.geometry {
                 assert_eq!(
                     coordinates,
@@ -623,7 +623,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::LineString {
                     coordinates: vec![[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]]
@@ -642,7 +642,7 @@ mod tests {
         let feature = wrap_feature(&t, &t.objects["foo"]);
         assert_eq!(
             feature,
-            Feature::Item(FeatureItem {
+            GeoJSON::Item(Feature {
                 properties: None,
                 geometry: FeatureGeometryType::Polygon {
                     coordinates: vec![vec![[0., 0.], [0., 1.], [1., 1.], [1., 0.], [0., 0.]]]

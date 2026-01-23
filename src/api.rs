@@ -1,6 +1,6 @@
 use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
-use crate::geojsons::{Feature, FeatureGeometryType};
+use crate::geojsons::{FeatureGeometryType, GeoJSON};
 use crate::merge::wrap_merge;
 use crate::mesh::wrap_mesh;
 use crate::neighbors::wrap_neighbors;
@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyFunction;
 
 #[pyfunction]
-pub fn feature(topology: &TopoJSON, o: &Geometry) -> Feature {
+pub fn feature(topology: &TopoJSON, o: &Geometry) -> GeoJSON {
     wrap_feature(topology, o)
 }
 
@@ -56,7 +56,7 @@ impl TopoJSON {
         self.transform = new_transform;
     }
 
-    fn feature(&self, key: &str) -> PyResult<Feature> {
+    fn feature(&self, key: &str) -> PyResult<GeoJSON> {
         if let Some(o) = self.objects.get(key) {
             Ok(wrap_feature(self, o))
         } else {
