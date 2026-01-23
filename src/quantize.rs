@@ -46,7 +46,7 @@ impl Quantize {
 
         let n = transform.floor();
         if n < 2. || n.is_nan() {
-            return Err(PyRuntimeError::new_err("n must be larger than 2"));
+            return Err(PyRuntimeError::new_err("'transform' must be larger than 2"));
         }
         let r#box = if topology.bbox.is_empty() {
             bbox(topology).to_vec()
