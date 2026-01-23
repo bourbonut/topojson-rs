@@ -3,11 +3,11 @@ from typing import Optional
 
 class TopoJSON:
     """
-    TopoJSON is a JSON format for encoding geographic data structures into a shared topology [1]_.
+    TopoJSON is a JSON format for encoding geographic data structures into a shared topology.
 
     Notes
     -----
-    .. [1] https://github.com/topojson/topojson-specification
+    See [topojson-specification](https://github.com/topojson/topojson-specification)
     """
 
     bbox: list[float]
@@ -111,6 +111,11 @@ class TopoJSON:
         FeatureGeometryType_MultiLineString
             GeoJSON MultiLineString geometry object
 
+        Warnings
+        --------
+        Currently, `filter` argument does not change the result because it is
+        avoided due to performance issues.
+
         Raises
         ------
         KeyError
@@ -119,11 +124,11 @@ class TopoJSON:
 
     def compute_bbox(self) -> list[float]:
         """
-        Returns the computed bounding box of the specified topology `[x_0, y_0,
-        x_1, y_1]` where x_0 is the minimum x-value, y_0 is the minimum y-value,
-        x_1 is the maximum x-value, and y_1 is the maximum y-value. If the
-        topology has no points and no arcs, the returned bounding box is `[inf,
-        inf, -inf, -inf]`.
+        Returns the computed bounding box of the specified topology $[x_0, y_0,
+        x_1, y_1]$ where $x_0$ is the minimum x-value, $y_0$ is the minimum
+        y-value, x_1 is the maximum x-value, and $y_1$ is the maximum y-value.
+        If the topology has no points and no arcs, the returned bounding box is
+        $[\\infty, \\infty, -\\infty, -\\infty]$.
 
         (This method ignores the existing topology.bbox, if any.)
         """
@@ -282,11 +287,11 @@ class Geometry_GeometryCollection:
 
 type GeoJSON = GeoJSON_FeatureCollection | GeoJSON_Feature
 GeoJSON.__doc__ = """
-    A GeoJSON object represents a Feature or collection of Features [1]_.
+    A GeoJSON object represents a Feature or collection of Features.
 
     Notes
     -----
-    .. [1] https://datatracker.ietf.org/doc/html/rfc7946
+    See [geojson-specification](https://datatracker.ietf.org/doc/html/rfc7946)
 """
 
 class GeoJSON_FeatureCollection:
@@ -488,6 +493,11 @@ def mesh(
     FeatureGeometryType_MultiLineString
         GeoJSON MultiLineString geometry object
 
+    Warnings
+    --------
+    Currently, `filter` argument does not change the result because it is
+    avoided due to performance issues.
+
     Raises
     ------
     KeyError
@@ -496,11 +506,11 @@ def mesh(
 
 def bbox(topology: TopoJSON) -> list[float]:
     """
-    Returns the computed bounding box of the specified topology `[x_0, y_0,
-    x_1, y_1]` where x_0 is the minimum x-value, y_0 is the minimum y-value,
-    x_1 is the maximum x-value, and y_1 is the maximum y-value. If the
-    topology has no points and no arcs, the returned bounding box is `[inf,
-    inf, -inf, -inf]`.
+    Returns the computed bounding box of the specified topology $[x_0, y_0,
+    x_1, y_1]$ where $x_0$ is the minimum x-value, $y_0$ is the minimum
+    y-value, x_1 is the maximum x-value, and $y_1$ is the maximum y-value.
+    If the topology has no points and no arcs, the returned bounding box is
+    $[\\infty, \\infty, -\\infty, -\\infty]$.
 
     (This method ignores the existing topology.bbox, if any.)
 
