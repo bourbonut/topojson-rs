@@ -1,0 +1,86 @@
+site_name: Topojson
+site_url: https://bourbonut.github.io/topojson
+site_description: Implementation of topojson-client in Rust for creating native Python extension.
+site_author: Benjamin Bourbon
+
+repo_url: https://github.com/bourbonut/topojson
+
+theme:
+  name: material
+  # logo: images/logo.svg
+  # favicon: images/favicon.svg
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: brown
+  features:
+    - navigation.indexes
+    - navigation.tabs.sticky
+    - navigation.footer
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      use_pygments: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+
+plugins:
+  search:
+  mkdocstrings:
+    default_handler: python
+    handlers:
+      python:
+        options:
+          show_root_heading: true
+          docstring_style: numpy
+          show_if_no_docstring: true
+          show_docstring_attributes: false
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+          separate_signature: true
+          signature_crossrefs: true
+          merge_init_into_class: true
+          parameter_headings: true
+          show_bases: false
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/bourbonut/plotynium/
+      name: Plotynium on Github
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Installation: index.md
+  - Usage: usage.md
+  - Functions: api/functions.md
+  - "Classes":
+    - api/topojson.md
+    - api/transform.md
+    - api/geometry.md
+    - api/geojson.md
+    - api/feature.md
+ 
+copyright: Copyright &copy; bourbonut
