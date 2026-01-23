@@ -271,7 +271,7 @@ def benchmark(name, py_read_file, rs_read_file, py_func, rs_func):
 
     is_same = compare(actual, expected)
     print(
-        f"{name.title():>20}: read - ratio: {r1 / r2:>6.3f}, py: {r1:>6.3f} ms, rs: {r2:>6.3f} ms | compute - ratio: {t1 / t2:>6.3f}, py: {t1:>6.3f} ms, rs: {t2:>6.3f} ms | ({is_same})"
+        f"| {name.title():>18} | {r1 / r2:>6.3f} | {r1:>6.3f} ms | {r2:>6.3f} ms | {t1 / t2:>6.3f} | {t1:>6.3f} ms | {t2:>6.3f} ms | {str(is_same):>7} |"
     )
 
 
@@ -379,6 +379,19 @@ def quantize_python():
 
     return wrapper
 
+
+print(
+    "|                    |      Reading performances      |     Computation performances   |         |"
+)
+print(
+    "|                    | ------------------------------ | ------------------------------ |         |"
+)
+print(
+    "|   Function + Data  |  ratio |    python |      rust |  ratio |    python |      rust |  Same ? |"
+)
+print(
+    "| ------------------ | ------------------------------ | ------------------------------ | ------- |"
+)
 
 benchmark(
     "feature land",
