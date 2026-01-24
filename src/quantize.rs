@@ -266,7 +266,7 @@ mod tests {
             if let Err(py_runtime_error) = wrap_quantize(&topology, &transform) {
                 assert_eq!(
                     py_runtime_error.to_string(),
-                    String::from("RuntimeError: n must be larger than 2")
+                    String::from("RuntimeError: 'transform' must be larger than 2")
                 );
             } else {
                 return Err(format!(
