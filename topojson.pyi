@@ -318,6 +318,23 @@ class GeoJSON_FeatureCollection:
 
     features: list[GeoJSON_Feature]
 
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
+
 class GeoJSON_Feature:
     """
     A feature represents points, curves, and surfaces in coordinate space.
@@ -327,6 +344,23 @@ class GeoJSON_Feature:
     geometry: FeatureGeometryType
     id: Optional[str]
     bbox: Optional[list[float]]
+
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
 
 type FeatureGeometryType = (
     FeatureGeometryType_GeometryCollection
@@ -346,12 +380,46 @@ class FeatureGeometryType_GeometryCollection:
 
     geometries: list[FeatureGeometryType]
 
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
+
 class FeatureGeometryType_Point:
     """
     A feature geometry describes as a position.
     """
 
     coordinates: list[float]
+
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
 
 class FeatureGeometryType_MultiPoint:
     """
@@ -360,12 +428,46 @@ class FeatureGeometryType_MultiPoint:
 
     coordinates: list[list[float]]
 
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
+
 class FeatureGeometryType_LineString:
     """
     A feature geometry describes as a serie of positions.
     """
 
     coordinates: list[list[float]]
+
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
 
 class FeatureGeometryType_MultiLineString:
     """
@@ -374,6 +476,23 @@ class FeatureGeometryType_MultiLineString:
 
     coordinates: list[list[list[float]]]
 
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
+
 class FeatureGeometryType_Polygon:
     """
     A feature geometry describes as multiple rings of series of positions.
@@ -381,12 +500,46 @@ class FeatureGeometryType_Polygon:
 
     coordinates: list[list[list[float]]]
 
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
+
 class FeatureGeometryType_MultiPolygon:
     """
     A feature geometry describes as multiple polygons of rings of series of positions.
     """
 
     coordinates: list[list[list[list[float]]]]
+
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
 
 def read(file: str) -> TopoJSON:
     """

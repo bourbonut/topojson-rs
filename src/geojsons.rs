@@ -1,21 +1,49 @@
+use pyo3::exceptions::{PyOSError, PyRuntimeError};
 use pyo3::prelude::*;
+use serde::Serialize;
+use std::fs;
 
 #[pyclass]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(tag = "type")]
 pub enum GeoJSON {
-    Collection(FeatureCollection),
-    Item(Feature),
+    FeatureCollection(FeatureCollection),
+    Feature(Feature),
+}
+
+#[pymethods]
+impl GeoJSON {
+    fn write(&self, file: &str) -> PyResult<()> {
+        fs::write(
+            file,
+            serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
+        )
+        .map_err(PyOSError::new_err)?;
+        Ok(())
+    }
 }
 
 #[pyclass]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct FeatureCollection {
     #[pyo3(get)]
     pub features: Vec<Feature>,
 }
 
+#[pymethods]
+impl FeatureCollection {
+    fn write(&self, file: &str) -> PyResult<()> {
+        fs::write(
+            file,
+            serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
+        )
+        .map_err(PyOSError::new_err)?;
+        Ok(())
+    }
+}
+
 #[pyclass]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Feature {
     #[pyo3(get)]
     pub properties: Option<String>,
@@ -27,8 +55,20 @@ pub struct Feature {
     pub bbox: Option<Vec<f64>>,
 }
 
+#[pymethods]
+impl Feature {
+    fn write(&self, file: &str) -> PyResult<()> {
+        fs::write(
+            file,
+            serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
+        )
+        .map_err(PyOSError::new_err)?;
+        Ok(())
+    }
+}
+
 #[pyclass]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum FeatureGeometryType {
     GeometryCollection {
         geometries: Vec<FeatureGeometryType>,
@@ -51,4 +91,16 @@ pub enum FeatureGeometryType {
     MultiPolygon {
         coordinates: Vec<Vec<Vec<[f64; 2]>>>,
     },
+}
+
+#[pymethods]
+impl FeatureGeometryType {
+    fn write(&self, file: &str) -> PyResult<()> {
+        fs::write(
+            file,
+            serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
+        )
+        .map_err(PyOSError::new_err)?;
+        Ok(())
+    }
 }
