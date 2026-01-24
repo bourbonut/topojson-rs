@@ -2,52 +2,33 @@
 
 Implementation of [`topojson-client`](https://github.com/topojson/topojson-client) in Rust for creating native Python extension.
 
-I don't want to distribute the library on Pypi because I don't think it is yet ready for production due to some potential performance improvements to make and non-polished API. However if you want to test it, you can follow the manual instructions.
+- [Documentation](https://topojson-rs.readthedocs.io/en/latest/)
 
-## Manual installation
-
-Clone the repository, make a virtual environment and compile it
+## Installation
 
 ```bash
-pip install maturin
-maturin develop --release
+pip install topojson_rs
 ```
 
-Then don't forget to activate the environment.
+## Development
 
-## Example
+1. You need [`cargo`](https://rust-lang.org/tools/install/) installed and [`maturin`](https://pypi.org/project/maturin/).
+2. Create a virtual environment
+3. Build the package:
+```
+maturin develop --release
+```
+4. You should be able to import `topojson`.
 
-```py
-import topojson
+### Run tests
 
-topology = topojson.read(file)
-
-land = topology.objects["land"]
-
-features = topojson.feature(topology, land)
-features = topology.feature("land")
-
-mesh = topojson.mesh(topology, land, filter=None)
-mesh = topology.mesh("land", filter=None)
-
-objects = topology.objects["counties"].geometries
-merge = topojson.merge(objects)
-merge = topology.merge("counties")
-
-objects = list(topology["objects"].values())
-neighbors = topojson.neighbors(objects)
-neighbors = topology.neighbors(list(topology["objects"].keys()))
-
-bbox = topojson.bbox(topology)
-bbox = topology.compute_bbox()
-
-quantize = topojson.quantize(topology, 1e4)
-quantize = topology.quantize(1e4)
+```bash
+cargo test
 ```
 
 ## Benchmarks
 
-Current benchmark (see `benchmark.py`, files available [here](https://github.com/topojson/us-atlas) and [fork of `pytopojson`](https://github.com/bourbonut/pytopojson) for correct results). `land`, `states` and `counties` are topojson files.
+Current benchmark (see `benchmark.py`, files `land`, `states` and `counties` available [here](https://github.com/topojson/us-atlas) and [fork of `pytopojson`](https://github.com/bourbonut/pytopojson) for correct results).
 
 <table>
   <tr>
