@@ -368,6 +368,8 @@ def neighbors_python(ordered_keys):
 def quantize_rust():
     def wrapper(topology):
         topology.transform = None
+        t = topojson.quantize(topology, 1e4)
+        t.write("some_file.json")
         return topojson.quantize(topology, 1e4)
 
     return wrapper
@@ -394,142 +396,142 @@ print(
     "| ------------------ | ------------------------------ | ------------------------------ | ------- |"
 )
 
-benchmark(
-    "feature land",
-    py_load_file("./land-110m.json"),
-    rs_load_file("./land-110m.json"),
-    feature_python("land"),
-    feature_rust("land"),
-)
-
-benchmark(
-    "feature states",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    feature_python("states"),
-    feature_rust("states"),
-)
-
-benchmark(
-    "feature counties",
-    py_load_file("./counties-10m.json"),
-    rs_load_file("./counties-10m.json"),
-    feature_python("counties"),
-    feature_rust("counties"),
-)
-
-benchmark(
-    "mesh land",
-    py_load_file("./land-110m.json"),
-    rs_load_file("./land-110m.json"),
-    mesh_python("land"),
-    mesh_rust("land"),
-)
-
-benchmark(
-    "mesh states",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    mesh_python("states"),
-    mesh_rust("states"),
-)
-
-benchmark(
-    "mesh counties",
-    py_load_file("./counties-10m.json"),
-    rs_load_file("./counties-10m.json"),
-    mesh_python("counties"),
-    mesh_rust("counties"),
-)
-
-benchmark(
-    "merge land",
-    py_load_file("./land-110m.json"),
-    rs_load_file("./land-110m.json"),
-    merge_python("land"),
-    merge_rust("land"),
-)
-
-benchmark(
-    "merge states",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    merge_python("states"),
-    merge_rust("states"),
-)
-
-
-benchmark(
-    "merge counties",
-    py_load_file("./counties-10m.json"),
-    rs_load_file("./counties-10m.json"),
-    merge_python("counties"),
-    merge_rust("counties"),
-)
-
-benchmark(
-    "bbox land",
-    py_load_file("./land-110m.json"),
-    rs_load_file("./land-110m.json"),
-    bbox_python(),
-    bbox_rust(),
-)
-
-benchmark(
-    "bbox states",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    bbox_python(),
-    bbox_rust(),
-)
-
-benchmark(
-    "bbox counties",
-    py_load_file("./counties-10m.json"),
-    rs_load_file("./counties-10m.json"),
-    bbox_python(),
-    bbox_rust(),
-)
-
-benchmark(
-    "neighbors land",
-    py_load_file("./land-110m.json"),
-    rs_load_file("./land-110m.json"),
-    neighbors_python(["land"]),
-    neighbors_rust(["land"]),
-)
-
-benchmark(
-    "neighbors states",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    neighbors_python(["states", "nation"]),
-    neighbors_rust(["states", "nation"]),
-)
-
-benchmark(
-    "neighbors counties",
-    py_load_file("./counties-10m.json"),
-    rs_load_file("./counties-10m.json"),
-    neighbors_python(["counties", "nation", "states"]),
-    neighbors_rust(["counties", "nation", "states"]),
-)
-
-benchmark(
-    "quantize land",
-    py_load_file("./land-110m.json"),
-    rs_load_file("./land-110m.json"),
-    quantize_python(),
-    quantize_rust(),
-)
-
-benchmark(
-    "quantize states",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    quantize_python(),
-    quantize_rust(),
-)
+# benchmark(
+#     "feature land",
+#     py_load_file("./land-110m.json"),
+#     rs_load_file("./land-110m.json"),
+#     feature_python("land"),
+#     feature_rust("land"),
+# )
+#
+# benchmark(
+#     "feature states",
+#     py_load_file("./states-10m.json"),
+#     rs_load_file("./states-10m.json"),
+#     feature_python("states"),
+#     feature_rust("states"),
+# )
+#
+# benchmark(
+#     "feature counties",
+#     py_load_file("./counties-10m.json"),
+#     rs_load_file("./counties-10m.json"),
+#     feature_python("counties"),
+#     feature_rust("counties"),
+# )
+#
+# benchmark(
+#     "mesh land",
+#     py_load_file("./land-110m.json"),
+#     rs_load_file("./land-110m.json"),
+#     mesh_python("land"),
+#     mesh_rust("land"),
+# )
+#
+# benchmark(
+#     "mesh states",
+#     py_load_file("./states-10m.json"),
+#     rs_load_file("./states-10m.json"),
+#     mesh_python("states"),
+#     mesh_rust("states"),
+# )
+#
+# benchmark(
+#     "mesh counties",
+#     py_load_file("./counties-10m.json"),
+#     rs_load_file("./counties-10m.json"),
+#     mesh_python("counties"),
+#     mesh_rust("counties"),
+# )
+#
+# benchmark(
+#     "merge land",
+#     py_load_file("./land-110m.json"),
+#     rs_load_file("./land-110m.json"),
+#     merge_python("land"),
+#     merge_rust("land"),
+# )
+#
+# benchmark(
+#     "merge states",
+#     py_load_file("./states-10m.json"),
+#     rs_load_file("./states-10m.json"),
+#     merge_python("states"),
+#     merge_rust("states"),
+# )
+#
+#
+# benchmark(
+#     "merge counties",
+#     py_load_file("./counties-10m.json"),
+#     rs_load_file("./counties-10m.json"),
+#     merge_python("counties"),
+#     merge_rust("counties"),
+# )
+#
+# benchmark(
+#     "bbox land",
+#     py_load_file("./land-110m.json"),
+#     rs_load_file("./land-110m.json"),
+#     bbox_python(),
+#     bbox_rust(),
+# )
+#
+# benchmark(
+#     "bbox states",
+#     py_load_file("./states-10m.json"),
+#     rs_load_file("./states-10m.json"),
+#     bbox_python(),
+#     bbox_rust(),
+# )
+#
+# benchmark(
+#     "bbox counties",
+#     py_load_file("./counties-10m.json"),
+#     rs_load_file("./counties-10m.json"),
+#     bbox_python(),
+#     bbox_rust(),
+# )
+#
+# benchmark(
+#     "neighbors land",
+#     py_load_file("./land-110m.json"),
+#     rs_load_file("./land-110m.json"),
+#     neighbors_python(["land"]),
+#     neighbors_rust(["land"]),
+# )
+#
+# benchmark(
+#     "neighbors states",
+#     py_load_file("./states-10m.json"),
+#     rs_load_file("./states-10m.json"),
+#     neighbors_python(["states", "nation"]),
+#     neighbors_rust(["states", "nation"]),
+# )
+#
+# benchmark(
+#     "neighbors counties",
+#     py_load_file("./counties-10m.json"),
+#     rs_load_file("./counties-10m.json"),
+#     neighbors_python(["counties", "nation", "states"]),
+#     neighbors_rust(["counties", "nation", "states"]),
+# )
+#
+# benchmark(
+#     "quantize land",
+#     py_load_file("./land-110m.json"),
+#     rs_load_file("./land-110m.json"),
+#     quantize_python(),
+#     quantize_rust(),
+# )
+#
+# benchmark(
+#     "quantize states",
+#     py_load_file("./states-10m.json"),
+#     rs_load_file("./states-10m.json"),
+#     quantize_python(),
+#     quantize_rust(),
+# )
 
 benchmark(
     "quantize counties",

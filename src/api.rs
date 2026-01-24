@@ -6,9 +6,10 @@ use crate::mesh::wrap_mesh;
 use crate::neighbors::wrap_neighbors;
 use crate::quantize::wrap_quantize;
 use crate::topojsons::{Geometry, TopoJSON, Transform};
-use pyo3::exceptions::{PyKeyError, PyTypeError};
+use pyo3::exceptions::{PyKeyError, PyOSError, PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
 use pyo3::types::PyFunction;
+use std::fs;
 
 #[pyfunction]
 pub fn feature(topology: &TopoJSON, o: &Geometry) -> GeoJSON {
@@ -122,5 +123,14 @@ impl TopoJSON {
 
     fn quantize(&self, transform: f64) -> PyResult<TopoJSON> {
         wrap_quantize(self, &transform)
+    }
+
+    fn write(&self, file: &str) -> PyResult<()> {
+        fs::write(
+            file,
+            serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
+        )
+        .map_err(PyOSError::new_err)?;
+        Ok(())
     }
 }

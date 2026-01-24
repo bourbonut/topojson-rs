@@ -1,7 +1,22 @@
 use std::collections::HashMap;
 
 use pyo3::prelude::*;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+fn serialize_string_into_map<S>(value: &Option<String>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    use serde_json::Value;
+
+    match value {
+        Some(s) => match serde_json::from_str::<Value>(s) {
+            Ok(parsed_value) => parsed_value.serialize(serializer),
+            Err(_) => value.serialize(serializer),
+        },
+        None => serializer.serialize_none(),
+    }
+}
 
 fn deserialize_map_into_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
@@ -42,6 +57,7 @@ pub enum Geometry {
     GeometryCollection {
         geometries: Vec<Geometry>,
         id: Option<String>,
+        #[serde(serialize_with = "serialize_string_into_map")]
         #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
@@ -50,6 +66,7 @@ pub enum Geometry {
     Point {
         coordinates: [f64; 2],
         id: Option<String>,
+        #[serde(serialize_with = "serialize_string_into_map")]
         #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
@@ -58,6 +75,7 @@ pub enum Geometry {
     MultiPoint {
         coordinates: Vec<[f64; 2]>,
         id: Option<String>,
+        #[serde(serialize_with = "serialize_string_into_map")]
         #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
@@ -66,6 +84,7 @@ pub enum Geometry {
     LineString {
         arcs: Vec<i32>,
         id: Option<String>,
+        #[serde(serialize_with = "serialize_string_into_map")]
         #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
@@ -74,6 +93,7 @@ pub enum Geometry {
     MultiLineString {
         arcs: Vec<Vec<i32>>,
         id: Option<String>,
+        #[serde(serialize_with = "serialize_string_into_map")]
         #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
@@ -82,6 +102,7 @@ pub enum Geometry {
     Polygon {
         arcs: Vec<Vec<i32>>,
         id: Option<String>,
+        #[serde(serialize_with = "serialize_string_into_map")]
         #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,
@@ -90,6 +111,7 @@ pub enum Geometry {
     MultiPolygon {
         arcs: Vec<Vec<Vec<i32>>>,
         id: Option<String>,
+        #[serde(serialize_with = "serialize_string_into_map")]
         #[serde(deserialize_with = "deserialize_map_into_string")]
         #[serde(default)]
         properties: Option<String>,

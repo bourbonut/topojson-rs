@@ -194,6 +194,23 @@ class TopoJSON:
             If topology is already quantized or transform is smaller than 2.
         """
 
+    def write(self, file: str):
+        """
+        Write expression to json.
+
+        Parameters
+        ----------
+        file : str
+            Path to a file
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        OsError
+            When the file cannot be written
+        """
+
 class Transform:
     """
     The purpose of the transform is to quantize positions for more efficient
@@ -520,7 +537,7 @@ def bbox(topology: TopoJSON) -> list[float]:
         TopoJSON object
     """
 
-def neighbors(topology, objects: list[Geometry]) -> list[list[int]]:
+def neighbors(objects: list[Geometry]) -> list[list[int]]:
     """
     Returns an array representing the set of neighboring objects for each
     object in the specified objects array. The returned array has the same
@@ -534,8 +551,6 @@ def neighbors(topology, objects: list[Geometry]) -> list[list[int]]:
 
     Parameters
     ----------
-    topology : TopoJSON
-        TopoJSON object containing the neighboring objects
     object : list[Geometry]
         List of neighboring objects
 
