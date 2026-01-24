@@ -32,7 +32,7 @@ class TopoJSON:
 
         Returns
         -------
-        Feature
+        GeoJSON
             GeoJSON Feature or FeatureCollection
 
         Raises
@@ -131,6 +131,11 @@ class TopoJSON:
         $[\\infty, \\infty, -\\infty, -\\infty]$.
 
         (This method ignores the existing topology.bbox, if any.)
+
+        Returns
+        -------
+        list[float]
+            Computed bounding box
         """
 
     def neighbors(self, keys: list[str]) -> list[list[int]]:
@@ -582,7 +587,7 @@ def feature(topology: TopoJSON, o: Geometry) -> GeoJSON:
 
     Returns
     -------
-    Feature
+    GeoJSON
         GeoJSON Feature or FeatureCollection
 
     Examples
@@ -597,7 +602,7 @@ def feature(topology: TopoJSON, o: Geometry) -> GeoJSON:
       collection of features, each with a geometry collection.
     """
 
-def merge(topology: TopoJSON, o: Geometry) -> GeoJSON:
+def merge(topology: TopoJSON, o: Geometry) -> FeatureGeometryType_MultiLineString:
     """
     Returns the GeoJSON MultiPolygon geometry object representing the union for
     the specified array of Polygon and MultiPolygon objects in the given
@@ -614,19 +619,15 @@ def merge(topology: TopoJSON, o: Geometry) -> GeoJSON:
 
     Returns
     -------
-    Feature
-        GeoJSON Feature or FeatureCollection
+    FeatureGeometryType_MultiLineString
+        GeoJSON MultiPolygon geometry object
 
-    Examples
-    --------
-    - A point is mapped to a feature with a geometry object of type "Point".
-    - Likewise for line strings, polygons, and other simple geometries.
-    - A null geometry object (of type null in TopoJSON) is mapped to a feature
-      with a null geometry object.
-    - A geometry collection of points is mapped to a feature collection of
-      features, each with a point geometry.
-    - A geometry collection of geometry collections is mapped to a feature
-      collection of features, each with a geometry collection.
+    Raises
+    ------
+    KeyError
+        When `key` is not found in `objects`
+    TypeError
+        Selected object is not a `Geometry_GeometryCollection`.
     """
 
 def mesh(
@@ -688,6 +689,11 @@ def bbox(topology: TopoJSON) -> list[float]:
     ----------
     topology : TopoJSON
         TopoJSON object
+
+    Returns
+    -------
+    list[float]
+        Computed bounding box
     """
 
 def neighbors(objects: list[Geometry]) -> list[list[int]]:
@@ -704,7 +710,7 @@ def neighbors(objects: list[Geometry]) -> list[list[int]]:
 
     Parameters
     ----------
-    object : list[Geometry]
+    objects : list[Geometry]
         List of neighboring objects
 
     Returns

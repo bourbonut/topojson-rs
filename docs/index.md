@@ -2,9 +2,13 @@
 title: Installation
 ---
 
-# `topojson-rs` documentation
+# Pypi
 
-## Manual installation
+```bash
+pip install topojson_rs
+```
+
+# Manual installation
 
 Clone the repository, make a virtual environment and compile it
 

@@ -1,4 +1,4 @@
-site_name: Topojson
+site_name: topojson_rs
 site_url: https://bourbonut.github.io/topojson
 site_description: Implementation of topojson-client in Rust for creating native Python extension.
 site_author: Benjamin Bourbon
