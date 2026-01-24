@@ -6,8 +6,9 @@
 name: CI
 
 on:
-  tags:
-    - '*'
+  push:
+    tags:
+      - '*'
 
 permissions:
   contents: read
