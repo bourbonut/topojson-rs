@@ -9,7 +9,6 @@ on:
   push:
     tags:
       - '*'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -36,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: ">=3.10"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -67,7 +66,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: ">=3.10"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -94,7 +93,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: ">=3.10"
           architecture: ${{ matrix.platform.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -119,7 +118,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: ">=3.10"
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -147,10 +146,12 @@ jobs:
           name: wheels-sdist
           path: dist
 
-  release:
-    name: Release
+  publish-to-pypi:
+    name: Publish to pypi
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' }}
+    environment:
+      name: pypi
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: [linux, musllinux, windows, macos, sdist]
     permissions:
       # Use to sign the release artifacts
@@ -165,11 +166,26 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: 'wheels-*/*'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
       - name: Publish to PyPI
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        uses: PyO3/maturin-action@v1
-        env:
-          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          command: upload
-          args: --non-interactive --skip-existing wheels-*/*
+        run: uv publish wheels-*/*
+
+  # publish-to-github:
+  #   name: Publish to github
+  #   runs-on: ubuntu-latest
+  #   if: ${{ startsWith(github.ref, 'refs/tags/') }}
+  #   needs: [publish-to-pypi]
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         path: dist
+  #         merge-multiple: true
+  #     - name: Publish to GitHub Release
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         files: dist/*
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
