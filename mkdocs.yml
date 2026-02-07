@@ -55,6 +55,7 @@ plugins:
           docstring_style: numpy
           show_if_no_docstring: true
           show_docstring_attributes: false
+          show_signature_annotations: true
           show_symbol_type_heading: true
           show_symbol_type_toc: true
           separate_signature: true
