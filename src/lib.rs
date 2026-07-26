@@ -3,6 +3,7 @@ mod bbox;
 mod bisect;
 mod feature;
 mod geojsons;
+mod lambda;
 mod merge;
 mod mesh;
 mod neighbors;
