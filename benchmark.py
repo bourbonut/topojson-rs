@@ -465,6 +465,23 @@ benchmark(
     mesh_rust("counties"),
 )
 
+
+benchmark(
+    "Mesh states (filt)",
+    py_load_file("./states-10m.json"),
+    rs_load_file("./states-10m.json"),
+    mesh_python("states", filt=filter_python_states),
+    mesh_rust("states", filt=filter_rust_states),
+)
+
+benchmark(
+    "Mesh counties (filt)",
+    py_load_file("./counties-10m.json"),
+    rs_load_file("./counties-10m.json"),
+    mesh_python("states", filt=filter_python_counties),
+    mesh_rust("states", filt=filter_rust_counties),
+)
+
 benchmark(
     "merge land",
     py_load_file("./land-110m.json"),
@@ -488,23 +505,6 @@ benchmark(
     rs_load_file("./counties-10m.json"),
     merge_python("counties"),
     merge_rust("counties"),
-)
-
-
-benchmark(
-    "Mesh states (filt)",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    mesh_python("states", filt=filter_python_states),
-    mesh_rust("states", filt=filter_rust_states),
-)
-
-benchmark(
-    "Mesh counties (filt)",
-    py_load_file("./counties-10m.json"),
-    rs_load_file("./counties-10m.json"),
-    mesh_python("states", filt=filter_python_counties),
-    mesh_rust("states", filt=filter_rust_counties),
 )
 
 benchmark(
