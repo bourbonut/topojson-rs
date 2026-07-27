@@ -272,7 +272,7 @@ def benchmark(name, py_read_file, rs_read_file, py_func, rs_func):
 
     is_same = compare(actual, expected)
     print(
-        f"| {name.title():>18} | {r1 / r2:>6.3f} | {r1:>6.3f} ms | {r2:>6.3f} ms | {t1 / t2:>6.3f} | {t1:>6.3f} ms | {t2:>6.3f} ms | {str(is_same):>7} |"
+        f"| {name.title():>21} | {r1 / r2:>6.3f} | {r1:>6.3f} ms | {r2:>6.3f} ms | {t1 / t2:>6.3f} | {t1:>6.3f} ms | {t2:>6.3f} ms | {str(is_same):>7} |"
     )
 
 
@@ -317,7 +317,7 @@ def mesh_rust(key, filt=None):
 def mesh_python(key, filt=None):
     def wrapper(topology):
         obj = topology["objects"][key]
-        return Mesh()(topology, obj, filter=filt)
+        return Mesh()(topology, obj, filt=filt)
 
     return wrapper
 
@@ -327,6 +327,27 @@ def merge_rust(key):
         return topojson.merge(topology, topology.objects[key].geometries)
 
     return wrapper
+
+
+def filter_python_counties(a, b):
+    return a != b and int(int(a["id"]) / 1000) == int(int(b["id"]) / 1000)
+
+
+def filter_python_states(a, b):
+    return a != b
+
+
+a = topojson.GeoVar()
+b = topojson.GeoVar()
+
+filter_rust_states = a.ops_neq(b)
+
+filter_rust_counties = (a.ops_neq(b)).ops_and(
+    a.attribute_i32("id")
+    .div_i32(1000)
+    .as_i32()
+    .ops_eq(b.attribute_i32("id").div_i32(1000).as_i32())
+)
 
 
 def merge_python(key):
@@ -384,16 +405,16 @@ def quantize_python():
 
 
 print(
-    "|                    |      Reading performances      |     Computation performances   |         |"
+    "|                       |      Reading performances      |     Computation performances   |         |"
 )
 print(
-    "|                    | ------------------------------ | ------------------------------ |         |"
+    "|                       | ------------------------------ | ------------------------------ |         |"
 )
 print(
-    "|   Function + Data  |  ratio |    python |      rust |  ratio |    python |      rust |  Same ? |"
+    "|      Function + Data  |  ratio |    python |      rust |  ratio |    python |      rust |  Same ? |"
 )
 print(
-    "| ------------------ | ------------------------------ | ------------------------------ | ------- |"
+    "| --------------------- | ------------------------------ | ------------------------------ | ------- |"
 )
 
 benchmark(
@@ -469,6 +490,23 @@ benchmark(
     merge_rust("counties"),
 )
 
+
+benchmark(
+    "Mesh states (filt)",
+    py_load_file("./states-10m.json"),
+    rs_load_file("./states-10m.json"),
+    mesh_python("states", filt=filter_python_states),
+    mesh_rust("states", filt=filter_rust_states),
+)
+
+benchmark(
+    "Mesh counties (filt)",
+    py_load_file("./counties-10m.json"),
+    rs_load_file("./counties-10m.json"),
+    mesh_python("states", filt=filter_python_counties),
+    mesh_rust("states", filt=filter_rust_counties),
+)
+
 benchmark(
     "bbox land",
     py_load_file("./land-110m.json"),
@@ -540,28 +578,3 @@ benchmark(
     quantize_python(),
     quantize_rust(),
 )
-
-# def filter_func(a, b):
-#     return a != b
-#
-#
-# topology = load_states()
-# obj = topology["objects"]["states"]
-# benchmark(
-#     "mesh states",
-#     lambda: Mesh()(topology, obj, filt=filter_func),
-#     lambda: topojson.mesh(topology, obj, filter=filter_func),
-# )
-#
-#
-# def filter_func(a, b):
-#     return a != b and int(int(a["id"]) / 1000) == int(int(b["id"]) / 1000)
-#
-#
-# topology = load_counties()
-# obj = topology["objects"]["counties"]
-# benchmark(
-#     "mesh counties",
-#     lambda: Mesh()(topology, obj, filt=filter_func),
-#     lambda: topojson.mesh(topology, obj, filter=filter_func),
-# )

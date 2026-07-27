@@ -75,7 +75,7 @@ impl GeoVar {
         Self::NoChange()
     }
 
-    pub fn attribute(&self, attribute: String, transform: Transform) -> PyResult<GeoVar> {
+    fn attribute(&self, attribute: String, transform: Transform) -> PyResult<GeoVar> {
         match self {
             Self::NoChange() => Ok(GeoVar::Ops(vec![Ops::Attr(attribute, transform)])),
             _ => Err(PyTypeError::new_err(
@@ -84,7 +84,19 @@ impl GeoVar {
         }
     }
 
-    pub fn transform(&self, transform: Transform) -> PyResult<GeoVar> {
+    pub fn attribute_i32(&self, attribute: String) -> PyResult<GeoVar> {
+        self.attribute(attribute, Transform::ParseI32)
+    }
+
+    pub fn attribute_f32(&self, attribute: String) -> PyResult<GeoVar> {
+        self.attribute(attribute, Transform::ParseF32)
+    }
+
+    pub fn attribute_len(&self, attribute: String) -> PyResult<GeoVar> {
+        self.attribute(attribute, Transform::Length)
+    }
+
+    fn transform(&self, transform: Transform) -> PyResult<GeoVar> {
         match self {
             Self::Ops(ops) => {
                 let mut cloned = ops.clone();
@@ -95,6 +107,18 @@ impl GeoVar {
                 "The method 'transform' must be called only on 'Geovar::Ops' variant",
             )),
         }
+    }
+
+    pub fn as_i32(&self) -> PyResult<GeoVar> {
+        self.transform(Transform::ParseI32)
+    }
+
+    pub fn as_f32(&self) -> PyResult<GeoVar> {
+        self.transform(Transform::ParseF32)
+    }
+
+    pub fn len(&self) -> PyResult<GeoVar> {
+        self.transform(Transform::Length)
     }
 
     pub fn add_i32(&self, value: i32) -> PyResult<GeoVar> {
@@ -201,19 +225,19 @@ impl GeoVar {
         }
     }
 
-    pub fn eq(&self, other: &GeoVar) -> Self {
+    pub fn ops_eq(&self, other: &GeoVar) -> Self {
         GeoVar::Eq(vec![self.clone(), other.clone()])
     }
 
-    pub fn neq(&self, other: &GeoVar) -> Self {
+    pub fn ops_neq(&self, other: &GeoVar) -> Self {
         GeoVar::Neq(vec![self.clone(), other.clone()])
     }
 
-    pub fn and(&self, other: &GeoVar) -> Self {
+    pub fn ops_and(&self, other: &GeoVar) -> Self {
         GeoVar::And(vec![self.clone(), other.clone()])
     }
 
-    pub fn or(&self, other: &GeoVar) -> Self {
+    pub fn ops_or(&self, other: &GeoVar) -> Self {
         GeoVar::Or(vec![self.clone(), other.clone()])
     }
 }
@@ -539,7 +563,7 @@ fn geo_ops(ops: &Vec<Ops>, geom: &Geometry) -> PyResult<Value> {
                 )));
             }
             Ops::Attr(_, _) => {
-                return Err(PyValueError::new_err(format!(
+                return Err(PyAttributeError::new_err(format!(
                     "Cannot get any attribute on '{:?}'",
                     value
                 )));

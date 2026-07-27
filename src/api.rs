@@ -1,6 +1,7 @@
 use crate::bbox::wrap_bbox;
 use crate::feature::wrap_feature;
 use crate::geojsons::{FeatureGeometryType, GeoJSON};
+use crate::lambda::GeoVar;
 use crate::merge::wrap_merge;
 use crate::mesh::wrap_mesh;
 use crate::neighbors::wrap_neighbors;
@@ -8,7 +9,6 @@ use crate::quantize::wrap_quantize;
 use crate::topojsons::{Geometry, TopoJSON, Transform};
 use pyo3::exceptions::{PyKeyError, PyOSError, PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::PyFunction;
 use std::fs;
 
 #[pyfunction]
@@ -25,9 +25,9 @@ pub fn merge(topology: &TopoJSON, objects: Vec<Geometry>) -> FeatureGeometryType
 pub fn mesh(
     topology: &TopoJSON,
     object: Option<Geometry>,
-    filter: Option<&Bound<'_, PyFunction>>,
+    filter: Option<GeoVar>,
 ) -> PyResult<FeatureGeometryType> {
-    wrap_mesh(topology, object.as_ref(), filter)
+    wrap_mesh(topology, object.as_ref(), filter.as_ref())
 }
 
 #[pyfunction]
@@ -84,15 +84,11 @@ impl TopoJSON {
         }
     }
 
-    fn mesh(
-        &self,
-        key: Option<&str>,
-        filter: Option<&Bound<'_, PyFunction>>,
-    ) -> PyResult<FeatureGeometryType> {
+    fn mesh(&self, key: Option<&str>, filter: Option<GeoVar>) -> PyResult<FeatureGeometryType> {
         match key {
             Some(key) => {
                 if let Some(obj) = self.objects.get(key) {
-                    wrap_mesh(self, Some(obj), filter)
+                    wrap_mesh(self, Some(obj), filter.as_ref())
                 } else {
                     Err(PyKeyError::new_err(format!(
                         "Key '{}' not found in 'objects'",
@@ -100,7 +96,7 @@ impl TopoJSON {
                     )))
                 }
             }
-            None => wrap_mesh(self, None, filter),
+            None => wrap_mesh(self, None, filter.as_ref()),
         }
     }
 

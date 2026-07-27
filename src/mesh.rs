@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
-use pyo3::{Bound, PyResult, types::PyFunction}; // PyAnyMethods
+use pyo3::PyResult;
 
 use crate::feature::object_func;
 use crate::geojsons::FeatureGeometryType;
+use crate::lambda::{GeoVar, geo_cmp};
 use crate::stitch::stitch;
 use crate::topojsons::{Geometry, TopoJSON};
 
 pub fn wrap_mesh(
     topology: &TopoJSON,
     object: Option<&Geometry>,
-    filter: Option<&Bound<PyFunction>>,
+    filter: Option<&GeoVar>,
 ) -> PyResult<FeatureGeometryType> {
     Ok(object_func(
         topology,
@@ -41,7 +42,7 @@ impl<'a> MeshArcs<'a> {
     fn call(
         topology: &TopoJSON,
         object: Option<&'a Geometry>,
-        filter: Option<&'a Bound<PyFunction>>,
+        filter: Option<&'a GeoVar>,
     ) -> PyResult<Geometry> {
         let arcs = match object {
             Some(object) => MeshArcs::default().extract(object, filter)?,
@@ -55,27 +56,19 @@ impl<'a> MeshArcs<'a> {
         })
     }
 
-    fn extract(
-        mut self,
-        object: &'a Geometry,
-        filter: Option<&'a Bound<PyFunction>>,
-    ) -> PyResult<Vec<i32>> {
+    fn extract(mut self, object: &'a Geometry, filter: Option<&'a GeoVar>) -> PyResult<Vec<i32>> {
         self.geometry(object);
 
         let geoms_by_arc =
             (0..=self.geoms_by_arc.max_index).filter_map(|k| self.geoms_by_arc.hmap.get(&k));
         match filter {
-            Some(_filter_func) => {
+            Some(geo_var) => {
                 for geoms in geoms_by_arc {
-                    // if filter_func
-                    //     .call1((geoms[0].geometry, geoms.last().unwrap().geometry))?
-                    //     .extract::<bool>()?
-                    // {
-                    //     self.arcs.push(geoms[0].i);
-                    // }
-
-                    // TODO: python filter
-                    self.arcs.push(geoms[0].i);
+                    let geom1 = geoms.first().unwrap().geometry;
+                    let geom2 = geoms.last().unwrap().geometry;
+                    if geo_cmp(geo_var, geom1, geom2)?.as_bool() {
+                        self.arcs.push(geoms[0].i);
+                    }
                 }
             }
             None => geoms_by_arc.for_each(|geoms| {
