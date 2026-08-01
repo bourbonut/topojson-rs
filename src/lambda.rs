@@ -31,6 +31,7 @@ use std::num::{ParseFloatError, ParseIntError};
 use crate::topojsons::Geometry;
 use pyo3::exceptions::{PyAttributeError, PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::{PyFloat, PyInt};
 
 // Unfortunately, I didn't find a better optimized organization for `Eq`, `Neq`, `And` and `Or`
 // variants due to pyo3's constraints.
@@ -56,7 +57,7 @@ pub enum Transform {
 #[pyclass]
 #[derive(Clone)]
 pub enum Ops {
-    Attr(String, Transform),
+    ItemGetter(String),
     Transform(Transform),
     AddI32(i32),
     AddF32(f32),
@@ -75,25 +76,13 @@ impl GeoVar {
         Self::NoChange()
     }
 
-    fn attribute(&self, attribute: String, transform: Transform) -> PyResult<GeoVar> {
+    fn __getitem__(&self, attribute: String) -> PyResult<GeoVar> {
         match self {
-            Self::NoChange() => Ok(GeoVar::Ops(vec![Ops::Attr(attribute, transform)])),
+            Self::NoChange() => Ok(GeoVar::Ops(vec![Ops::ItemGetter(attribute)])),
             _ => Err(PyTypeError::new_err(
                 "The method 'attribute' must be called only on 'Geovar::NoChange' variant",
             )),
         }
-    }
-
-    pub fn attribute_i32(&self, attribute: String) -> PyResult<GeoVar> {
-        self.attribute(attribute, Transform::ParseI32)
-    }
-
-    pub fn attribute_f32(&self, attribute: String) -> PyResult<GeoVar> {
-        self.attribute(attribute, Transform::ParseF32)
-    }
-
-    pub fn attribute_len(&self, attribute: String) -> PyResult<GeoVar> {
-        self.attribute(attribute, Transform::Length)
     }
 
     fn transform(&self, transform: Transform) -> PyResult<GeoVar> {
@@ -109,11 +98,11 @@ impl GeoVar {
         }
     }
 
-    pub fn as_i32(&self) -> PyResult<GeoVar> {
+    pub fn int(&self) -> PyResult<GeoVar> {
         self.transform(Transform::ParseI32)
     }
 
-    pub fn as_f32(&self) -> PyResult<GeoVar> {
+    pub fn float(&self) -> PyResult<GeoVar> {
         self.transform(Transform::ParseF32)
     }
 
@@ -121,123 +110,103 @@ impl GeoVar {
         self.transform(Transform::Length)
     }
 
-    pub fn add_i32(&self, value: i32) -> PyResult<GeoVar> {
+    pub fn __add__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
         match self {
             Self::Ops(ops) => {
                 let mut cloned = ops.clone();
-                cloned.push(Ops::AddI32(value));
+                if let Ok(value) = other.cast::<PyInt>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::AddI32(extracted));
+                } else if let Ok(value) = other.cast::<PyFloat>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::AddF32(extracted));
+                } else {
+                    return Err(PyTypeError::new_err("Expected an integer or a float."));
+                }
                 Ok(GeoVar::Ops(cloned))
             }
             _ => Err(PyTypeError::new_err(
-                "The method 'add_i32' must be called only on 'Geovar::Ops' variant",
+                "The method '__add__' must be called only on 'Geovar::Ops' variant",
             )),
         }
     }
 
-    pub fn add_f32(&self, value: f32) -> PyResult<GeoVar> {
+    pub fn __sub__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
         match self {
             Self::Ops(ops) => {
                 let mut cloned = ops.clone();
-                cloned.push(Ops::AddF32(value));
+                if let Ok(value) = other.cast::<PyInt>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::SubI32(extracted));
+                } else if let Ok(value) = other.cast::<PyFloat>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::SubF32(extracted));
+                } else {
+                    return Err(PyTypeError::new_err("Expected an integer or a float."));
+                }
                 Ok(GeoVar::Ops(cloned))
             }
             _ => Err(PyTypeError::new_err(
-                "The method 'add_f32' must be called only on 'Geovar::Ops' variant",
+                "The method '__sub__' must be called only on 'Geovar::Ops' variant",
             )),
         }
     }
 
-    pub fn sub_i32(&self, value: i32) -> PyResult<GeoVar> {
+    pub fn __mul__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
         match self {
             Self::Ops(ops) => {
                 let mut cloned = ops.clone();
-                cloned.push(Ops::SubI32(value));
+                if let Ok(value) = other.cast::<PyInt>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::MulI32(extracted));
+                } else if let Ok(value) = other.cast::<PyFloat>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::MulF32(extracted));
+                } else {
+                    return Err(PyTypeError::new_err("Expected an integer or a float."));
+                }
                 Ok(GeoVar::Ops(cloned))
             }
             _ => Err(PyTypeError::new_err(
-                "The method 'sub_i32' must be called only on 'Geovar::Ops' variant",
+                "The method '__mul__' must be called only on 'Geovar::Ops' variant",
             )),
         }
     }
 
-    pub fn sub_f32(&self, value: f32) -> PyResult<GeoVar> {
+    pub fn __truediv__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
         match self {
             Self::Ops(ops) => {
                 let mut cloned = ops.clone();
-                cloned.push(Ops::SubF32(value));
+                if let Ok(value) = other.cast::<PyInt>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::DivI32(extracted));
+                } else if let Ok(value) = other.cast::<PyFloat>() {
+                    let extracted = value.extract()?;
+                    cloned.push(Ops::DivF32(extracted));
+                } else {
+                    return Err(PyTypeError::new_err("Expected an integer or a float."));
+                }
                 Ok(GeoVar::Ops(cloned))
             }
             _ => Err(PyTypeError::new_err(
-                "The method 'sub_f32' must be called only on 'Geovar::Ops' variant",
+                "The method '__div__' must be called only on 'Geovar::Ops' variant",
             )),
         }
     }
 
-    pub fn mul_i32(&self, value: i32) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                cloned.push(Ops::MulI32(value));
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method 'mul_i32' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
-    }
-
-    pub fn mul_f32(&self, value: f32) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                cloned.push(Ops::MulF32(value));
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method 'mul_f32' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
-    }
-
-    pub fn div_i32(&self, value: i32) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                cloned.push(Ops::DivI32(value));
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method 'div_i32' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
-    }
-
-    pub fn div_f32(&self, value: f32) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                cloned.push(Ops::DivF32(value));
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method 'div_f32' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
-    }
-
-    pub fn ops_eq(&self, other: &GeoVar) -> Self {
+    pub fn __eq__(&self, other: &GeoVar) -> Self {
         GeoVar::Eq(vec![self.clone(), other.clone()])
     }
 
-    pub fn ops_neq(&self, other: &GeoVar) -> Self {
+    pub fn __ne__(&self, other: &GeoVar) -> Self {
         GeoVar::Neq(vec![self.clone(), other.clone()])
     }
 
-    pub fn ops_and(&self, other: &GeoVar) -> Self {
+    pub fn __and__(&self, other: &GeoVar) -> Self {
         GeoVar::And(vec![self.clone(), other.clone()])
     }
 
-    pub fn ops_or(&self, other: &GeoVar) -> Self {
+    pub fn __or__(&self, other: &GeoVar) -> Self {
         GeoVar::Or(vec![self.clone(), other.clone()])
     }
 }
@@ -479,71 +448,107 @@ pub(crate) fn geo_cmp(var: &GeoVar, geom1: &Geometry, geom2: &Geometry) -> PyRes
     }
 }
 
-fn geo_ops(ops: &Vec<Ops>, geom: &Geometry) -> PyResult<Value> {
-    if ops.is_empty() {
-        return Err(PyRuntimeError::new_err(
-            "The vector of operations must never be empty.",
-        ));
+impl Geometry {
+    fn parse_id(&self, transform: &Transform) -> PyResult<Value> {
+        let id_str = self.id().ok_or_else(|| {
+            PyTypeError::new_err(
+                "argument must be a string, a bytes-like object or a real number, not 'NoneType'",
+            )
+        })?;
+
+        match transform {
+            Transform::ParseI32 => id_str
+                .parse::<i32>()
+                .map(Value::Int)
+                .map_err(|e: ParseIntError| PyValueError::new_err(e.to_string())),
+
+            Transform::ParseF32 => id_str
+                .parse::<f32>()
+                .map(Value::Float)
+                .map_err(|e: ParseFloatError| PyValueError::new_err(e.to_string())),
+
+            Transform::Length => Ok(Value::Int(id_str.len() as i32)),
+        }
     }
-    let mut queue = VecDeque::from_iter(ops);
-    let op = queue.pop_front().unwrap();
-    let mut value: Value = match op {
-        Ops::Attr(attr, transform) => match (attr.as_str(), transform) {
-            // ("geometries", Transform::Length) => match geom {
-            //     Geometry::GeometryCollection { geometries, .. } => {
-            //         Value::Int(geometries.len() as i32)
-            //     }
-            //     _ => {
-            //         return Err(PyAttributeError::new_err(
-            //             "The value is not a 'Geometry::GeometryCollection'",
-            //         ));
-            //     }
-            // },
-            // ("geometries", transform) => {
-            //     return Err(PyRuntimeError::new_err(format!(
-            //         "Unsupported conversion with 'geometries' attribute (found '{:?}')",
-            //         transform
-            //     )));
-            // }
-            ("id", Transform::ParseI32) => {
-                if let Some(id) = geom.id() {
-                    let value: i32 = id
-                        .parse()
-                        .map_err(|e: ParseIntError| PyValueError::new_err(e.to_string()))?;
-                    Value::Int(value)
-                } else {
-                    return Err(PyTypeError::new_err(
-                        "int() argument must be a string, a bytes-like object or a real number, not 'NoneType'",
-                    ));
-                }
-            }
-            ("id", Transform::ParseF32) => {
-                if let Some(id) = geom.id() {
-                    let value: f32 = id
-                        .parse()
-                        .map_err(|e: ParseFloatError| PyValueError::new_err(e.to_string()))?;
-                    Value::Float(value)
-                } else {
-                    return Err(PyTypeError::new_err(
-                        "float() argument must be a string or a real number, not 'NoneType'",
-                    ));
-                }
-            }
-            ("id", Transform::Length) => {
-                if let Some(id) = geom.id() {
-                    Value::Int(id.len() as i32)
-                } else {
-                    return Err(PyTypeError::new_err(
-                        "int() argument must be a string, a bytes-like object or a real number, not 'NoneType'",
-                    ));
-                }
-            }
-            _ => return Err(PyRuntimeError::new_err("Not implemented yet")),
-        },
+
+    fn parse_bbox(&self, transform: &Transform) -> PyResult<Value> {
+        let bbox = self.bbox().ok_or_else(|| {
+            PyTypeError::new_err(
+                "argument must be a string, a bytes-like object or a real number, not 'NoneType'",
+            )
+        })?;
+
+        match transform {
+            Transform::ParseI32 => Err(PyTypeError::new_err(
+                "int() argument must be a string, a bytes-like object or a real number, not 'list'",
+            )),
+            Transform::ParseF32 => Err(PyTypeError::new_err(
+                "float() argument must be a string or a real number, not 'list'",
+            )),
+            Transform::Length => Ok(Value::Int(bbox.len() as i32)),
+        }
+    }
+
+    fn parse_properties(&self, transform: &Transform) -> PyResult<Value> {
+        let properties_str = self.properties().ok_or_else(|| {
+            PyTypeError::new_err(
+                "argument must be a string, a bytes-like object or a real number, not 'NoneType'",
+            )
+        })?;
+
+        match transform {
+            Transform::ParseI32 => properties_str
+                .parse::<i32>()
+                .map(Value::Int)
+                .map_err(|e: ParseIntError| PyValueError::new_err(e.to_string())),
+
+            Transform::ParseF32 => properties_str
+                .parse::<f32>()
+                .map(Value::Float)
+                .map_err(|e: ParseFloatError| PyValueError::new_err(e.to_string())),
+
+            Transform::Length => Ok(Value::Int(properties_str.len() as i32)),
+        }
+    }
+}
+
+fn first_ops(queue: &mut VecDeque<&Ops>, geom: &Geometry) -> PyResult<Value> {
+    let op = queue
+        .pop_front()
+        .ok_or_else(|| PyRuntimeError::new_err("The vector of operations must never be empty."))?;
+
+    let key = match op {
+        Ops::ItemGetter(k) => k,
         _ => {
-            return Err(PyValueError::new_err("First operator must be 'Ops::Attr'."));
+            return Err(PyValueError::new_err(
+                "First operator must be 'Ops::ItemGetter'. Use 'my_var[my_key]'.",
+            ));
         }
     };
+
+    let transform = match queue.pop_front() {
+        Some(Ops::Transform(t)) => t,
+        _ => {
+            return Err(PyValueError::new_err(
+                "A 'Ops::ItemGetter' must be followed by a 'Ops::Transform' operator.",
+            ));
+        }
+    };
+
+    match key.as_str() {
+        "id" => geom.parse_id(transform),
+        "properties" => geom.parse_properties(transform),
+        "bbox" => geom.parse_bbox(transform),
+        _ => Err(PyValueError::new_err(format!(
+            "Unknown or not implemented key {:?}",
+            key
+        ))),
+    }
+}
+
+fn geo_ops(ops: &Vec<Ops>, geom: &Geometry) -> PyResult<Value> {
+    let mut queue = VecDeque::from_iter(ops);
+    let mut value = first_ops(&mut queue, geom)?;
     while let Some(op) = queue.pop_front() {
         value = match *op {
             Ops::AddI32(other) => value.add_i32(other),
@@ -562,9 +567,9 @@ fn geo_ops(ops: &Vec<Ops>, geom: &Geometry) -> PyResult<Value> {
                     value
                 )));
             }
-            Ops::Attr(_, _) => {
+            Ops::ItemGetter(_) => {
                 return Err(PyAttributeError::new_err(format!(
-                    "Cannot get any attribute on '{:?}'",
+                    "Cannot get any item of the value '{:?}'",
                     value
                 )));
             }

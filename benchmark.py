@@ -340,13 +340,10 @@ def filter_python_states(a, b):
 a = topojson.GeoVar()
 b = topojson.GeoVar()
 
-filter_rust_states = a.ops_neq(b)
+filter_rust_states = a != b
 
-filter_rust_counties = (a.ops_neq(b)).ops_and(
-    a.attribute_i32("id")
-    .div_i32(1000)
-    .as_i32()
-    .ops_eq(b.attribute_i32("id").div_i32(1000).as_i32())
+filter_rust_counties = (a != b) & (
+    (a["id"].int() / 1000).int() == (b["id"].int() / 1000).int()
 )
 
 
@@ -458,6 +455,14 @@ benchmark(
 )
 
 benchmark(
+    "Mesh states (filt)",
+    py_load_file("./states-10m.json"),
+    rs_load_file("./states-10m.json"),
+    mesh_python("states", filt=filter_python_states),
+    mesh_rust("states", filt=filter_rust_states),
+)
+
+benchmark(
     "mesh counties",
     py_load_file("./counties-10m.json"),
     rs_load_file("./counties-10m.json"),
@@ -465,14 +470,6 @@ benchmark(
     mesh_rust("counties"),
 )
 
-
-benchmark(
-    "Mesh states (filt)",
-    py_load_file("./states-10m.json"),
-    rs_load_file("./states-10m.json"),
-    mesh_python("states", filt=filter_python_states),
-    mesh_rust("states", filt=filter_rust_states),
-)
 
 benchmark(
     "Mesh counties (filt)",
