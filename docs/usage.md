@@ -14,8 +14,19 @@ features = topojson.feature(topology, land) # (3)!
 features = topology.feature("land") # (4)!
 features.write(file) # (5)!
 
+# use this, instead of `lambda` functions
+a = topojson.var() # (19)!
+b = topojson.var()
+
 mesh = topojson.mesh(topology, land, filter=None) # (6)!
-mesh = topology.mesh("land", filter=None) # (7)!
+mesh = topology.mesh(
+    "land",
+    filter=(
+        a != b
+    ) & (
+        (a["id"].int() / 1000).int() != (b["id"].int() / 1000).int()
+    )
+) # (7)!
 mesh.write(file) # (8)!
 
 objects = topology.objects["counties"].geometries
@@ -53,3 +64,4 @@ quantize.write(file) # (18)!
 16. See [topojson.quantize][topojson.quantize]
 17. See [TopoJSON.quantize][topojson.TopoJSON.quantize]
 18. See [TopoJSON.write][topojson.TopoJSON.write]
+18. See [TopoJSON.var][topojson.var] and [TopoJSON.GeoVar][topojson.GeoVar]

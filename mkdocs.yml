@@ -83,5 +83,6 @@ nav:
     - api/geometry.md
     - api/geojson.md
     - api/feature.md
+    - api/lambda.md
  
 copyright: Copyright &copy; bourbonut
