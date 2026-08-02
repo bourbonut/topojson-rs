@@ -19,14 +19,10 @@ a = topojson.var() # (19)!
 b = topojson.var()
 
 mesh = topojson.mesh(topology, land, filter=None) # (6)!
-mesh = topology.mesh(
+mesh = topology.mesh( # (7)!
     "land",
-    filter=(
-        a != b
-    ) & (
-        (a["id"].int() / 1000).int() != (b["id"].int() / 1000).int()
-    )
-) # (7)!
+    filter=(a != b) & ((a["id"].int() / 1000).int() != (b["id"].int() / 1000).int())
+)
 mesh.write(file) # (8)!
 
 objects = topology.objects["counties"].geometries
@@ -64,4 +60,4 @@ quantize.write(file) # (18)!
 16. See [topojson.quantize][topojson.quantize]
 17. See [TopoJSON.quantize][topojson.TopoJSON.quantize]
 18. See [TopoJSON.write][topojson.TopoJSON.write]
-18. See [TopoJSON.var][topojson.var] and [TopoJSON.GeoVar][topojson.GeoVar]
+18. See [TopoJSON.var][topojson.var]
