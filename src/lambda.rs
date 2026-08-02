@@ -33,19 +33,15 @@ use std::num::{ParseFloatError, ParseIntError};
 use crate::topojsons::Geometry;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyFloat, PyInt};
 
-// Unfortunately, I didn't find a better optimized organization for `Eq`, `Neq`, `And` and `Or`
-// variants due to pyo3's constraints.
-#[pyclass]
 #[derive(Debug, Clone)]
-pub enum GeoVar {
-    NoChange(),
+pub enum GeoVarEnum {
+    NoChange,
     Ops(Vec<Ops>),
-    Eq(Vec<GeoVar>),
-    Neq(Vec<GeoVar>),
-    And(Vec<GeoVar>),
-    Or(Vec<GeoVar>),
+    Eq([Box<GeoVarEnum>; 2]),
+    Neq([Box<GeoVarEnum>; 2]),
+    And([Box<GeoVarEnum>; 2]),
+    Or([Box<GeoVarEnum>; 2]),
 }
 
 #[pyclass]
@@ -56,7 +52,6 @@ pub enum Transform {
     Length,
 }
 
-#[pyclass]
 #[derive(Debug, Clone)]
 pub enum Ops {
     ItemGetter(String),
@@ -71,16 +66,78 @@ pub enum Ops {
     DivF64(f64),
 }
 
+impl GeoVarEnum {
+    fn compare(&self, geom1: &Geometry, geom2: &Geometry) -> PyResult<Value> {
+        match self {
+            Self::Eq(vars) => {
+                Self::cmp_vars(vars, geom1, geom2, |g1, g2| g1 == g2, |v1, v2| v1 == v2)
+            }
+            Self::Neq(vars) => {
+                Self::cmp_vars(vars, geom1, geom2, |g1, g2| g1 != g2, |v1, v2| v1 != v2)
+            }
+            Self::And(vars) => {
+                Self::cmp_vars(vars, geom1, geom2, |_, _| true, |v1, v2| v1.and(&v2))
+            }
+            Self::Or(vars) => Self::cmp_vars(vars, geom1, geom2, |_, _| true, |v1, v2| v1.or(&v2)),
+            Self::NoChange => Ok(Value::Bool(true)),
+            Self::Ops(_) => Err(PyRuntimeError::new_err(
+                "Cannot compare geometries without two distinct values.",
+            )),
+        }
+    }
+
+    fn cmp_vars<G, V>(
+        vars: &[Box<GeoVarEnum>; 2],
+        geom1: &Geometry,
+        geom2: &Geometry,
+        geom_fn: G,
+        value_fn: V,
+    ) -> PyResult<Value>
+    where
+        G: FnOnce(&Geometry, &Geometry) -> bool,
+        V: FnOnce(Value, Value) -> bool,
+    {
+        let [var1, var2] = vars;
+        match [var1.as_ref(), var2.as_ref()] {
+            [GeoVarEnum::NoChange, GeoVarEnum::NoChange] => Ok(Value::Bool(geom_fn(geom1, geom2))),
+            [GeoVarEnum::NoChange, _] | [_, GeoVarEnum::NoChange] => Ok(Value::Bool(false)),
+            [GeoVarEnum::Ops(ops1), GeoVarEnum::Ops(ops2)] => Ok(Value::Bool(value_fn(
+                geom1.process(ops1)?,
+                geom2.process(ops2)?,
+            ))),
+            _ => Ok(Value::Bool(value_fn(
+                var1.as_ref().compare(geom1, geom2)?,
+                var2.as_ref().compare(geom1, geom2)?,
+            ))),
+        }
+    }
+}
+
+#[pyfunction]
+pub fn var() -> GeoVar {
+    GeoVar::new()
+}
+
+#[pyclass]
+#[derive(Debug)]
+pub struct GeoVar {
+    inner: GeoVarEnum,
+}
+
 #[pymethods]
 impl GeoVar {
     #[new]
     pub fn new() -> Self {
-        Self::NoChange()
+        Self {
+            inner: GeoVarEnum::NoChange,
+        }
     }
 
-    fn __getitem__(&self, attribute: String) -> PyResult<GeoVar> {
-        match self {
-            Self::NoChange() => Ok(GeoVar::Ops(vec![Ops::ItemGetter(attribute)])),
+    pub fn __getitem__(&self, key: &str) -> PyResult<GeoVar> {
+        match self.inner {
+            GeoVarEnum::NoChange => Ok(GeoVar {
+                inner: GeoVarEnum::Ops(vec![Ops::ItemGetter(key.to_string())]),
+            }),
             _ => Err(PyTypeError::new_err(
                 "The method 'attribute' must be called only on 'Geovar::NoChange' variant",
             )),
@@ -88,11 +145,13 @@ impl GeoVar {
     }
 
     fn transform(&self, transform: Transform) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
+        match &self.inner {
+            GeoVarEnum::Ops(ops) => {
                 let mut cloned = ops.clone();
                 cloned.push(Ops::Transform(transform));
-                Ok(GeoVar::Ops(cloned))
+                Ok(GeoVar {
+                    inner: GeoVarEnum::Ops(cloned),
+                })
             }
             _ => Err(PyTypeError::new_err(
                 "The method 'transform' must be called only on 'Geovar::Ops' variant",
@@ -113,103 +172,35 @@ impl GeoVar {
     }
 
     pub fn __add__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                if let Ok(value) = other.cast::<PyInt>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::AddI64(extracted));
-                } else if let Ok(value) = other.cast::<PyFloat>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::AddF64(extracted));
-                } else {
-                    return Err(PyTypeError::new_err("Expected an integer or a float."));
-                }
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method '__add__' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
+        self.ops(other, |v| Ops::AddI64(v), |v| Ops::AddF64(v), "__add__")
     }
 
     pub fn __sub__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                if let Ok(value) = other.cast::<PyInt>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::SubI64(extracted));
-                } else if let Ok(value) = other.cast::<PyFloat>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::SubF64(extracted));
-                } else {
-                    return Err(PyTypeError::new_err("Expected an integer or a float."));
-                }
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method '__sub__' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
+        self.ops(other, |v| Ops::SubI64(v), |v| Ops::SubF64(v), "__sub__")
     }
 
     pub fn __mul__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                if let Ok(value) = other.cast::<PyInt>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::MulI64(extracted));
-                } else if let Ok(value) = other.cast::<PyFloat>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::MulF64(extracted));
-                } else {
-                    return Err(PyTypeError::new_err("Expected an integer or a float."));
-                }
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method '__mul__' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
+        self.ops(other, |v| Ops::MulI64(v), |v| Ops::MulF64(v), "__mul__")
     }
 
     pub fn __truediv__(&self, other: &Bound<'_, PyAny>) -> PyResult<GeoVar> {
-        match self {
-            Self::Ops(ops) => {
-                let mut cloned = ops.clone();
-                if let Ok(value) = other.cast::<PyInt>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::DivI64(extracted));
-                } else if let Ok(value) = other.cast::<PyFloat>() {
-                    let extracted = value.extract()?;
-                    cloned.push(Ops::DivF64(extracted));
-                } else {
-                    return Err(PyTypeError::new_err("Expected an integer or a float."));
-                }
-                Ok(GeoVar::Ops(cloned))
-            }
-            _ => Err(PyTypeError::new_err(
-                "The method '__div__' must be called only on 'Geovar::Ops' variant",
-            )),
-        }
+        self.ops(other, |v| Ops::DivI64(v), |v| Ops::DivF64(v), "__div__")
     }
 
     pub fn __eq__(&self, other: &GeoVar) -> Self {
-        GeoVar::Eq(vec![self.clone(), other.clone()])
+        self.cmp(other, |vars| GeoVarEnum::Eq(vars))
     }
 
     pub fn __ne__(&self, other: &GeoVar) -> Self {
-        GeoVar::Neq(vec![self.clone(), other.clone()])
+        self.cmp(other, |vars| GeoVarEnum::Neq(vars))
     }
 
     pub fn __and__(&self, other: &GeoVar) -> Self {
-        GeoVar::And(vec![self.clone(), other.clone()])
+        self.cmp(other, |vars| GeoVarEnum::And(vars))
     }
 
     pub fn __or__(&self, other: &GeoVar) -> Self {
-        GeoVar::Or(vec![self.clone(), other.clone()])
+        self.cmp(other, |vars| GeoVarEnum::Or(vars))
     }
 
     pub fn __str__(&self) -> String {
@@ -219,76 +210,46 @@ impl GeoVar {
 
 impl GeoVar {
     pub(crate) fn compare(&self, geom1: &Geometry, geom2: &Geometry) -> PyResult<Value> {
-        match self {
-            Self::Eq(vec) => {
-                if let [var1, var2] = vec.as_slice() {
-                    match [var1, var2] {
-                        [Self::NoChange(), Self::NoChange()] => Ok(Value::Bool(geom1 == geom2)),
-                        [Self::NoChange(), _] | [_, Self::NoChange()] => Ok(Value::Bool(false)),
-                        [Self::Ops(ops1), Self::Ops(ops2)] => {
-                            Ok(Value::Bool(geom1.process(ops1)? == geom2.process(ops2)?))
-                        }
-                        _ => Ok(Value::Bool(
-                            var1.compare(geom1, geom2)? == var2.compare(geom1, geom2)?,
-                        )),
-                    }
+        self.inner.compare(geom1, geom2)
+    }
+
+    fn cmp<F>(&self, other: &GeoVar, f: F) -> Self
+    where
+        F: FnOnce([Box<GeoVarEnum>; 2]) -> GeoVarEnum,
+    {
+        Self {
+            inner: f([Box::new(self.inner.clone()), Box::new(other.inner.clone())]),
+        }
+    }
+
+    fn ops<I, F>(
+        &self,
+        other: &Bound<'_, PyAny>,
+        ops_i32: I,
+        ops_f32: F,
+        method_name: &str,
+    ) -> PyResult<Self>
+    where
+        I: FnOnce(i64) -> Ops,
+        F: FnOnce(f64) -> Ops,
+    {
+        match &self.inner {
+            GeoVarEnum::Ops(ops) => {
+                let mut cloned = ops.clone();
+                if let Ok(extracted) = other.extract() {
+                    cloned.push(ops_i32(extracted));
+                } else if let Ok(extracted) = other.extract() {
+                    cloned.push(ops_f32(extracted));
                 } else {
-                    return Err(PyRuntimeError::new_err("Cannot compare more than two vars"));
+                    return Err(PyTypeError::new_err("Expected an integer or a float."));
                 }
+                Ok(GeoVar {
+                    inner: GeoVarEnum::Ops(cloned),
+                })
             }
-            Self::Neq(vec) => {
-                if let [var1, var2] = vec.as_slice() {
-                    match [var1, var2] {
-                        [Self::NoChange(), Self::NoChange()] => Ok(Value::Bool(geom1 != geom2)),
-                        [Self::NoChange(), _] | [_, Self::NoChange()] => Ok(Value::Bool(false)),
-                        [Self::Ops(ops1), Self::Ops(ops2)] => {
-                            Ok(Value::Bool(geom1.process(ops1)? != geom2.process(ops2)?))
-                        }
-                        _ => Ok(Value::Bool(
-                            var1.compare(geom1, geom2)? != var2.compare(geom1, geom2)?,
-                        )),
-                    }
-                } else {
-                    return Err(PyRuntimeError::new_err("Cannot compare more than two vars"));
-                }
-            }
-            Self::And(vec) => {
-                if let [var1, var2] = vec.as_slice() {
-                    match [var1, var2] {
-                        [Self::NoChange(), Self::NoChange()] => Ok(Value::Bool(true)),
-                        [Self::NoChange(), _] | [_, Self::NoChange()] => Ok(Value::Bool(true)),
-                        [Self::Ops(ops1), Self::Ops(ops2)] => {
-                            Ok(Value::Bool(geom1.process(ops1)?.and(&geom2.process(ops2)?)))
-                        }
-                        _ => Ok(Value::Bool(
-                            var1.compare(geom1, geom2)?
-                                .and(&var2.compare(geom1, geom2)?),
-                        )),
-                    }
-                } else {
-                    return Err(PyRuntimeError::new_err("Cannot compare more than two vars"));
-                }
-            }
-            Self::Or(vec) => {
-                if let [var1, var2] = vec.as_slice() {
-                    match [var1, var2] {
-                        [Self::NoChange(), Self::NoChange()] => Ok(Value::Bool(true)),
-                        [Self::NoChange(), _] | [_, Self::NoChange()] => Ok(Value::Bool(true)),
-                        [Self::Ops(ops1), Self::Ops(ops2)] => {
-                            Ok(Value::Bool(geom1.process(ops1)?.or(&geom2.process(ops2)?)))
-                        }
-                        _ => Ok(Value::Bool(
-                            var1.compare(geom1, geom2)?.or(&var2.compare(geom1, geom2)?),
-                        )),
-                    }
-                } else {
-                    return Err(PyRuntimeError::new_err("Cannot compare more than two vars"));
-                }
-            }
-            Self::NoChange() => Ok(Value::Bool(true)),
-            Self::Ops(_) => Err(PyRuntimeError::new_err(
-                "Cannot compare geometries without two distinct values.",
-            )),
+            _ => Err(PyTypeError::new_err(format!(
+                "The method '{method_name}' must be called only on 'Geovar::Ops' variant"
+            ))),
         }
     }
 }
@@ -369,68 +330,60 @@ impl Value {
         }
     }
 
-    fn add_i64(self, other: i64) -> Self {
+    fn op_i64<I, F>(self, other: i64, int_fn: I, float_fn: F) -> Self
+    where
+        I: FnOnce(i64, i64) -> i64,
+        F: FnOnce(f64, f64) -> f64,
+    {
         match self {
-            Self::Int(x) => Self::Int(x + other),
-            Self::Float(x) => Self::Float(x + other as f64),
-            Self::Bool(x) => Self::Int(x as i64 + other),
+            Self::Int(x) => Self::Int(int_fn(x, other)),
+            Self::Float(x) => Self::Float(float_fn(x, other as f64)),
+            Self::Bool(x) => Self::Int(int_fn(x as i64, other)),
         }
+    }
+
+    fn op_f64<F>(self, other: f64, f: F) -> Self
+    where
+        F: FnOnce(f64, f64) -> f64,
+    {
+        let val = match self {
+            Self::Int(x) => x as f64,
+            Self::Float(x) => x,
+            Self::Bool(x) => x as i64 as f64,
+        };
+        Self::Float(f(val, other))
+    }
+
+    fn add_i64(self, other: i64) -> Self {
+        self.op_i64(other, |a, b| a + b, |a, b| a + b)
     }
 
     fn add_f64(self, other: f64) -> Self {
-        match self {
-            Self::Int(x) => Self::Float(x as f64 + other),
-            Self::Float(x) => Self::Float(x + other),
-            Self::Bool(x) => Self::Float(x as i64 as f64 + other),
-        }
+        self.op_f64(other, |a, b| a + b)
     }
 
     fn sub_i64(self, other: i64) -> Self {
-        match self {
-            Self::Int(x) => Self::Int(x - other),
-            Self::Float(x) => Self::Float(x - other as f64),
-            Self::Bool(x) => Self::Int(x as i64 - other),
-        }
+        self.op_i64(other, |a, b| a - b, |a, b| a - b)
     }
 
     fn sub_f64(self, other: f64) -> Self {
-        match self {
-            Self::Int(x) => Self::Float(x as f64 - other),
-            Self::Float(x) => Self::Float(x - other),
-            Self::Bool(x) => Self::Float(x as i64 as f64 - other),
-        }
+        self.op_f64(other, |a, b| a - b)
     }
 
     fn mul_i64(self, other: i64) -> Self {
-        match self {
-            Self::Int(x) => Self::Int(x * other),
-            Self::Float(x) => Self::Float(x * other as f64),
-            Self::Bool(x) => Self::Int(x as i64 * other),
-        }
+        self.op_i64(other, |a, b| a * b, |a, b| a * b)
     }
 
     fn mul_f64(self, other: f64) -> Self {
-        match self {
-            Self::Int(x) => Self::Float(x as f64 * other),
-            Self::Float(x) => Self::Float(x * other),
-            Self::Bool(x) => Self::Float(x as i64 as f64 * other),
-        }
+        self.op_f64(other, |a, b| a * b)
     }
 
     fn div_i64(self, other: i64) -> Self {
-        match self {
-            Self::Int(x) => Self::Int(x / other),
-            Self::Float(x) => Self::Float(x / other as f64),
-            Self::Bool(x) => Self::Int(x as i64 / other),
-        }
+        self.op_i64(other, |a, b| a / b, |a, b| a / b)
     }
 
     fn div_f64(self, other: f64) -> Self {
-        match self {
-            Self::Int(x) => Self::Float(x as f64 / other),
-            Self::Float(x) => Self::Float(x / other),
-            Self::Bool(x) => Self::Float(x as i64 as f64 / other),
-        }
+        self.op_f64(other, |a, b| a / b)
     }
 
     fn value_type(&self) -> &str {

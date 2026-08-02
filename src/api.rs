@@ -25,9 +25,9 @@ pub fn merge(topology: &TopoJSON, objects: Vec<Geometry>) -> FeatureGeometryType
 pub fn mesh(
     topology: &TopoJSON,
     object: Option<Geometry>,
-    filter: Option<GeoVar>,
+    filter: Option<&GeoVar>,
 ) -> PyResult<FeatureGeometryType> {
-    wrap_mesh(topology, object.as_ref(), filter.as_ref())
+    wrap_mesh(topology, object.as_ref(), filter)
 }
 
 #[pyfunction]
@@ -84,11 +84,11 @@ impl TopoJSON {
         }
     }
 
-    fn mesh(&self, key: Option<&str>, filter: Option<GeoVar>) -> PyResult<FeatureGeometryType> {
+    fn mesh(&self, key: Option<&str>, filter: Option<&GeoVar>) -> PyResult<FeatureGeometryType> {
         match key {
             Some(key) => {
                 if let Some(obj) = self.objects.get(key) {
-                    wrap_mesh(self, Some(obj), filter.as_ref())
+                    wrap_mesh(self, Some(obj), filter)
                 } else {
                     Err(PyKeyError::new_err(format!(
                         "Key '{}' not found in 'objects'",
@@ -96,7 +96,7 @@ impl TopoJSON {
                     )))
                 }
             }
-            None => wrap_mesh(self, None, filter.as_ref()),
+            None => wrap_mesh(self, None, filter),
         }
     }
 
