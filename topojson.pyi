@@ -82,7 +82,7 @@ class TopoJSON:
     def mesh(
         self,
         key: Optional[str] = None,
-        filter: Optional[Callable[[Geometry, Geometry], bool]] = None,
+        filter: Optional[GeoVar] = None,
     ) -> FeatureGeometryType_MultiLineString:
         """
         Returns the GeoJSON MultiLineString geometry object representing the
@@ -97,24 +97,19 @@ class TopoJSON:
         ----------
         key : str
             Key to access the object by doing `topology.objects[key]`.
-        filter : Optional[Callable[[Geometry, Geometry], bool]]
-            The filter function is called once for each candidate arc and takes
-            two arguments, a and b, two geometry objects that share that arc.
-            Each arc is only included in the resulting mesh if the filter
-            function returns true. For typical map topologies the geometries a
-            and b are adjacent polygons and the candidate arc is their
-            boundary. If an arc is only used by a single geometry then a and b
-            are identical.
+        filter : Optional[GeoVar]
+            The filter variable is transformed into a function and it is called
+            once for each candidate arc and takes two arguments, a and b, two
+            geometry objects that share that arc. Each arc is only included in the
+            resulting mesh if the filter function returns true. For typical map
+            topologies the geometries a and b are adjacent polygons and the
+            candidate arc is their boundary. If an arc is only used by a single
+            geometry then a and b are identical.
 
         Returns
         -------
         FeatureGeometryType_MultiLineString
             GeoJSON MultiLineString geometry object
-
-        Warnings
-        --------
-        Currently, `filter` argument does not change the result because it is
-        avoided due to performance issues.
 
         Raises
         ------
@@ -201,7 +196,7 @@ class TopoJSON:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -325,7 +320,7 @@ class GeoJSON_FeatureCollection:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -352,7 +347,7 @@ class GeoJSON_Feature:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -387,7 +382,7 @@ class FeatureGeometryType_GeometryCollection:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -411,7 +406,7 @@ class FeatureGeometryType_Point:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -435,7 +430,7 @@ class FeatureGeometryType_MultiPoint:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -459,7 +454,7 @@ class FeatureGeometryType_LineString:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -483,7 +478,7 @@ class FeatureGeometryType_MultiLineString:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -507,7 +502,7 @@ class FeatureGeometryType_Polygon:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -531,7 +526,7 @@ class FeatureGeometryType_MultiPolygon:
 
     def write(self, file: str):
         """
-        Write expression to json.
+        Writes expression to json.
 
         Parameters
         ----------
@@ -546,9 +541,195 @@ class FeatureGeometryType_MultiPolygon:
             When the file cannot be written
         """
 
+class GeoVar:
+    """
+    Object used for `mesh` filter argument as a filter condition on geometry
+    objects.
+    """
+
+    def __getitem__(self, attribute: str) -> GeoVar:
+        """
+        Indicates to access the specified attribute of the geometry.
+
+        Currently, only id, properties and bbox attributes are available
+        through `GeoVar`.
+
+        Parameters
+        ----------
+        attribute : str
+            Geometry attribute
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def int(self) -> GeoVar:
+        """
+        Indicates to cast the current value as an integer.
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def float(self) -> GeoVar:
+        """
+        Indicates to cast the current value as an float.
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def len(self) -> GeoVar:
+        """
+        Indicates to get the length of the current value.
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __add__(self, other: object) -> GeoVar:
+        """
+        Indicates to add the current value with another value.
+
+        Parameters
+        ----------
+        other : object
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __sub__(self, other: object) -> GeoVar:
+        """
+        Indicates to substract the current value with another value.
+
+        Parameters
+        ----------
+        other : object
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __mul__(self, other: object) -> GeoVar:
+        """
+        Indicates to multiply the current value with another value.
+
+        Parameters
+        ----------
+        other : object
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __truediv__(self, other: object) -> GeoVar:
+        """
+        Indicates to divide the current value with another value.
+
+        Parameters
+        ----------
+        other : object
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __eq__(self, other: object) -> GeoVar:  # type: ignore
+        """
+        Indicates to check the current value is equal with another value.
+
+        Parameters
+        ----------
+        other : object
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __ne__(self, other: object) -> GeoVar:  # type: ignore
+        """
+        Indicates to check the current value is not equal with another value.
+
+        Parameters
+        ----------
+        other : object
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __and__(self, other: object) -> GeoVar:
+        """
+        Indicates to associate the current value to a boolean (and respectively the
+        same for other value) and to apply a 'and' operator between the two booleans.
+
+        Parameters
+        ----------
+        other : GeoVar
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __or__(self, other: object) -> GeoVar:
+        """
+        Indicates to associate the current value to a boolean (and respectively the
+        same for other value) and to apply a 'or' operator between the two booleans.
+
+        Parameters
+        ----------
+        other : object
+            Another value
+
+        Returns
+        -------
+        GeoVar
+            New object with updated internal state
+        """
+
+    def __str__(self) -> str:
+        """
+        Converts the object into a string.
+
+        Returns
+        -------
+        str
+            The current object as a string.
+        """
+
 def read(file: str) -> TopoJSON:
     """
-    Read into a TopoJSON from a JSON file.
+    Reads into a TopoJSON from a JSON file.
 
     Parameters
     ----------
@@ -566,6 +747,16 @@ def read(file: str) -> TopoJSON:
         Unable to find, open or read the file.
     RuntimeError
         Unable to deserialize the file.
+    """
+
+def var() -> GeoVar:
+    """
+    Creates a GeoVar used in `mesh` filter argument.
+
+    Returns
+    -------
+    GeoVar
+        GeoVar object
     """
 
 def feature(topology: TopoJSON, o: Geometry) -> GeoJSON:
@@ -633,7 +824,7 @@ def merge(topology: TopoJSON, o: Geometry) -> FeatureGeometryType_MultiLineStrin
 def mesh(
     topology: TopoJSON,
     object: Optional[Geometry] = None,
-    filter: Optional[Callable[[Geometry, Geometry], bool]] = None,
+    filter: Optional[GeoVar] = None,
 ) -> FeatureGeometryType_MultiLineString:
     """
     Returns the GeoJSON MultiLineString geometry object representing the
@@ -650,24 +841,19 @@ def mesh(
         TopoJSON object containing the object to mesh
     object : Optional[Geometry]
         Specfied geometry to mesh
-    filter : Optional[Callable[[Geometry, Geometry], bool]]
-        The filter function is called once for each candidate arc and takes
-        two arguments, a and b, two geometry objects that share that arc.
-        Each arc is only included in the resulting mesh if the filter
-        function returns true. For typical map topologies the geometries a
-        and b are adjacent polygons and the candidate arc is their
-        boundary. If an arc is only used by a single geometry then a and b
-        are identical.
+    filter : Optional[GeoVar]
+        The filter variable is transformed into a function and it is called
+        once for each candidate arc and takes two arguments, a and b, two
+        geometry objects that share that arc. Each arc is only included in the
+        resulting mesh if the filter function returns true. For typical map
+        topologies the geometries a and b are adjacent polygons and the
+        candidate arc is their boundary. If an arc is only used by a single
+        geometry then a and b are identical.
 
     Returns
     -------
     FeatureGeometryType_MultiLineString
         GeoJSON MultiLineString geometry object
-
-    Warnings
-    --------
-    Currently, `filter` argument does not change the result because it is
-    avoided due to performance issues.
 
     Raises
     ------
