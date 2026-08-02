@@ -4,7 +4,7 @@ use pyo3::PyResult;
 
 use crate::feature::object_func;
 use crate::geojsons::FeatureGeometryType;
-use crate::lambda::{GeoVar, geo_cmp};
+use crate::lambda::GeoVar;
 use crate::stitch::stitch;
 use crate::topojsons::{Geometry, TopoJSON};
 
@@ -66,7 +66,7 @@ impl<'a> MeshArcs<'a> {
                 for geoms in geoms_by_arc {
                     let geom1 = geoms.first().unwrap().geometry;
                     let geom2 = geoms.last().unwrap().geometry;
-                    if geo_cmp(geo_var, geom1, geom2)?.as_bool() {
+                    if geo_var.compare(geom1, geom2)?.as_bool() {
                         self.arcs.push(geoms[0].i);
                     }
                 }
