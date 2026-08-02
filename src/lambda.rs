@@ -31,7 +31,7 @@ use std::collections::VecDeque;
 use std::num::{ParseFloatError, ParseIntError};
 
 use crate::topojsons::Geometry;
-use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError};
+use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -139,7 +139,7 @@ impl GeoVar {
                 inner: GeoVarEnum::Ops(vec![Ops::ItemGetter(key.to_string())]),
             }),
             _ => Err(PyTypeError::new_err(
-                "The method 'attribute' must be called only on 'Geovar::NoChange' variant",
+                "The method 'attribute' must be called only on 'GeoVarEnum::NoChange' variant",
             )),
         }
     }
@@ -154,7 +154,7 @@ impl GeoVar {
                 })
             }
             _ => Err(PyTypeError::new_err(
-                "The method 'transform' must be called only on 'Geovar::Ops' variant",
+                "The method 'transform' must be called only on 'GeoVarEnum::Ops' variant",
             )),
         }
     }
@@ -248,7 +248,7 @@ impl GeoVar {
                 })
             }
             _ => Err(PyTypeError::new_err(format!(
-                "The method '{method_name}' must be called only on 'Geovar::Ops' variant"
+                "The method '{method_name}' must be called only on 'GeoVarEnum::Ops' variant"
             ))),
         }
     }
@@ -378,12 +378,18 @@ impl Value {
         self.op_f64(other, |a, b| a * b)
     }
 
-    fn div_i64(self, other: i64) -> Self {
-        self.op_i64(other, |a, b| a / b, |a, b| a / b)
+    fn div_i64(self, other: i64) -> PyResult<Self> {
+        match other {
+            0 => Err(PyZeroDivisionError::new_err("division by zero")),
+            _ => Ok(self.op_i64(other, |a, b| a / b, |a, b| a / b)),
+        }
     }
 
-    fn div_f64(self, other: f64) -> Self {
-        self.op_f64(other, |a, b| a / b)
+    fn div_f64(self, other: f64) -> PyResult<Self> {
+        match other {
+            0.0 => Err(PyZeroDivisionError::new_err("division by zero")),
+            _ => Ok(self.op_f64(other, |a, b| a / b)),
+        }
     }
 
     fn value_type(&self) -> &str {
@@ -512,8 +518,8 @@ impl Geometry {
                 Ops::SubF64(other) => value.sub_f64(other),
                 Ops::MulI64(other) => value.mul_i64(other),
                 Ops::MulF64(other) => value.mul_f64(other),
-                Ops::DivI64(other) => value.div_i64(other),
-                Ops::DivF64(other) => value.div_f64(other),
+                Ops::DivI64(other) => value.div_i64(other)?,
+                Ops::DivF64(other) => value.div_f64(other)?,
                 Ops::Transform(Transform::AsI64) => value.as_i64(),
                 Ops::Transform(Transform::AsF64) => value.as_f64(),
                 Ops::Transform(Transform::Length) => {

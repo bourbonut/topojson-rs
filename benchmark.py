@@ -337,8 +337,8 @@ def filter_python_states(a, b):
     return a != b
 
 
-a = topojson.GeoVar()
-b = topojson.GeoVar()
+a = topojson.var()
+b = topojson.var()
 
 filter_rust_states = a != b
 
