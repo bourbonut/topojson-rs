@@ -1,4 +1,5 @@
 Cargo.lock
+site/
 target/
 .venv/
 *.json
