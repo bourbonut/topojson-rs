@@ -7,10 +7,13 @@ build:
    rust: "latest"
  jobs:
    pre_install:
-     - pip install mkdocs-material mkdocstrings[python] maturin
+     - pip install mkdocstrings-python zensical maturin
    pre_build:
      - maturin build --release
      - pip install target/wheels/*.whl
-
-mkdocs:
- configuration: mkdocs.yml
+   build:
+     html:
+       - zensical build
+   post_build:
+     - mkdir -p $READTHEDOCS_OUTPUT/html/
+     - cp --recursive site/* $READTHEDOCS_OUTPUT/html/
