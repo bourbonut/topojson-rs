@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "topojson_rs"
-version = "0.2"
+version = "0.3"
 description = "Implementation of topojson-client in Rust for creating native Python extension."
 readme = "README.md"
 requires-python = ">=3.12"
