@@ -400,7 +400,7 @@ impl Value {
         }
     }
 
-    pub fn as_bool(self) -> bool {
+    pub fn into_bool(self) -> bool {
         match self {
             Self::Bool(x) => x,
             Self::Int(x) => x != 0,
@@ -565,7 +565,7 @@ mod tests {
                 .and_then(|v| if key == "bbox" { v.len() } else { v.int() })
                 .unwrap();
             let result = a.__eq__(&b).compare(&geom, &geom);
-            assert!(result.map(|value| value.as_bool()).unwrap_or(false));
+            assert!(result.map(|value| value.into_bool()).unwrap_or(false));
         }
     }
 

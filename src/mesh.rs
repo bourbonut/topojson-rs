@@ -66,7 +66,7 @@ impl<'a> MeshArcs<'a> {
                 for geoms in geoms_by_arc {
                     let geom1 = geoms.first().unwrap().geometry;
                     let geom2 = geoms.last().unwrap().geometry;
-                    if geo_var.compare(geom1, geom2)?.as_bool() {
+                    if geo_var.compare(geom1, geom2)?.into_bool() {
                         self.arcs.push(geoms[0].i);
                     }
                 }
