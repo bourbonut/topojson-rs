@@ -539,3 +539,102 @@ impl Geometry {
         Ok(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_geovar_items() {
+        Python::initialize();
+
+        let geom = Geometry::Point {
+            coordinates: [10., 20.],
+            id: Some("10".to_string()),
+            properties: Some("10".to_string()),
+            bbox: Some(vec![]),
+        };
+
+        for key in ["id", "properties", "bbox"] {
+            let a = var()
+                .__getitem__(key)
+                .and_then(|v| if key == "bbox" { v.len() } else { v.int() })
+                .unwrap();
+            let b = var()
+                .__getitem__(key)
+                .and_then(|v| if key == "bbox" { v.len() } else { v.int() })
+                .unwrap();
+            let result = a.__eq__(&b).compare(&geom, &geom);
+            assert!(result.map(|value| value.as_bool()).unwrap_or(false));
+        }
+    }
+
+    #[test]
+    fn test_geovar_err_transform() {
+        Python::initialize();
+
+        let geom = Geometry::Point {
+            coordinates: [10., 20.],
+            id: Some("10".to_string()),
+            properties: Some("10".to_string()),
+            bbox: Some(vec![]),
+        };
+
+        let key = "bbox";
+        let a = var().__getitem__(key).and_then(|v| v.int()).unwrap();
+        let b = var().__getitem__(key).and_then(|v| v.int()).unwrap();
+        let result = a.__eq__(&b).compare(&geom, &geom);
+        assert!(
+            result
+                .err()
+                .map(|err| { err.to_string().contains("not 'list'") })
+                .unwrap_or(false),
+        );
+    }
+
+    #[test]
+    fn test_geovar_err_distinct() {
+        Python::initialize();
+
+        let geom = Geometry::Point {
+            coordinates: [10., 20.],
+            id: Some("10".to_string()),
+            properties: Some("10".to_string()),
+            bbox: Some(vec![]),
+        };
+
+        let key = "bbox";
+        let a = var().__getitem__(key).and_then(|v| v.int()).unwrap();
+        let result = a.compare(&geom, &geom);
+        assert!(
+            result
+                .err()
+                .map(|err| err.to_string().contains("distinct"))
+                .unwrap_or(false),
+        );
+    }
+
+    #[test]
+    fn test_geovar_err_preprocess() {
+        Python::initialize();
+
+        let geom = Geometry::Point {
+            coordinates: [10., 20.],
+            id: Some("10".to_string()),
+            properties: Some("10".to_string()),
+            bbox: Some(vec![]),
+        };
+
+        let a = var().__getitem__("bbox").unwrap();
+        let b = var().__getitem__("bbox").unwrap();
+        let result = a.__eq__(&b).compare(&geom, &geom);
+        assert!(
+            result
+                .err()
+                .map(|err| err
+                    .to_string()
+                    .contains("A 'Ops::ItemGetter' must be followed"))
+                .unwrap_or(false),
+        );
+    }
+}
