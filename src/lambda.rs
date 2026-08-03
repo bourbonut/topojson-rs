@@ -27,8 +27,8 @@
 // )
 // ```
 
-use std::collections::VecDeque;
 use std::num::{ParseFloatError, ParseIntError};
+use std::slice::Iter;
 
 use crate::topojsons::Geometry;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
@@ -472,8 +472,8 @@ impl Geometry {
         }
     }
 
-    fn preprocess(&self, queue: &mut VecDeque<&Ops>) -> PyResult<Value> {
-        let op = queue.pop_front().ok_or_else(|| {
+    fn preprocess(&self, queue: &mut Iter<'_, Ops>) -> PyResult<Value> {
+        let op = queue.next().ok_or_else(|| {
             PyRuntimeError::new_err("The vector of operations must never be empty.")
         })?;
 
@@ -486,7 +486,7 @@ impl Geometry {
             }
         };
 
-        let transform = match queue.pop_front() {
+        let transform = match queue.next() {
             Some(Ops::Transform(t)) => t,
             _ => {
                 return Err(PyValueError::new_err(concat!(
@@ -508,9 +508,9 @@ impl Geometry {
     }
 
     fn process(&self, ops: &Vec<Ops>) -> PyResult<Value> {
-        let mut queue = VecDeque::from_iter(ops);
+        let mut queue = ops.iter();
         let mut value = self.preprocess(&mut queue)?;
-        while let Some(op) = queue.pop_front() {
+        while let Some(op) = queue.next() {
             value = match *op {
                 Ops::AddI64(other) => value.add_i64(other),
                 Ops::AddF64(other) => value.add_f64(other),
