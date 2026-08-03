@@ -98,16 +98,6 @@ Current benchmark (see `benchmark.py`, files `land`, `states` and `counties` ava
     <td>True</td>
   </tr>
   <tr>
-    <td>Mesh Counties</td>
-    <td>1.473</td>
-    <td>16.426 ms</td>
-    <td>11.148 ms</td>
-    <td>10.043</td>
-    <td>87.903 ms</td>
-    <td>8.753 ms</td>
-    <td>True</td>
-  </tr>
-  <tr>
     <td>Mesh States (Filt)</td>
     <td>1.944</td>
     <td>2.680 ms</td>
@@ -115,6 +105,16 @@ Current benchmark (see `benchmark.py`, files `land`, `states` and `counties` ava
     <td>7.219</td>
     <td>2.149 ms</td>
     <td>0.298 ms</td>
+    <td>True</td>
+  </tr>
+  <tr>
+    <td>Mesh Counties</td>
+    <td>1.473</td>
+    <td>16.426 ms</td>
+    <td>11.148 ms</td>
+    <td>10.043</td>
+    <td>87.903 ms</td>
+    <td>8.753 ms</td>
     <td>True</td>
   </tr>
   <tr>
