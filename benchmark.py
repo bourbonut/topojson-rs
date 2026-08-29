@@ -278,6 +278,7 @@ def benchmark(name, py_read_file, rs_read_file, py_func, rs_func):
 
 def rs_load_file(filename):
     def wrapper():
+        # return topojson.load(open(filename).read().encode())
         return topojson.read(filename)
 
     return wrapper

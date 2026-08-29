@@ -33,6 +33,11 @@ fn read(file: &str) -> PyResult<TopoJSON> {
     serde_json::from_str::<TopoJSON>(&content).map_err(|e| PyRuntimeError::new_err(e.to_string()))
 }
 
+#[pyfunction]
+fn load(bytes: &[u8]) -> PyResult<TopoJSON> {
+    serde_json::from_slice(bytes).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+}
+
 #[pymodule]
 fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<TopoJSON>()?;
@@ -43,6 +48,7 @@ fn topojson(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<FeatureGeometryType>()?;
     m.add_class::<GeoVar>()?;
     m.add_function(wrap_pyfunction!(read, m)?)?;
+    m.add_function(wrap_pyfunction!(load, m)?)?;
     m.add_function(wrap_pyfunction!(var, m)?)?;
     m.add_function(wrap_pyfunction!(api::feature, m)?)?;
     m.add_function(wrap_pyfunction!(api::merge, m)?)?;

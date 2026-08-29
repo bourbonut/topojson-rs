@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import Optional
 
 class TopoJSON:
@@ -745,6 +744,26 @@ def read(file: str) -> TopoJSON:
     ------
     OsError
         Unable to find, open or read the file.
+    RuntimeError
+        Unable to deserialize the file.
+    """
+
+def load(buffer: bytes) -> TopoJSON:
+    """
+    Loads into a TopoJSON from a JSON buffer.
+
+    Parameters
+    ----------
+    buffer : bytes
+        JSON buffer
+
+    Returns
+    -------
+    TopoJSON
+        TopoJSON object
+
+    Raises
+    ------
     RuntimeError
         Unable to deserialize the file.
     """
