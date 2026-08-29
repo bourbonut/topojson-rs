@@ -28,8 +28,8 @@ where
     Ok(Some(value.to_string()))
 }
 
-#[pyclass]
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[pyclass(from_py_object)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TopoJSON {
     #[pyo3(get)]
     pub bbox: Vec<f64>,
@@ -41,7 +41,7 @@ pub struct TopoJSON {
     pub arcs: Vec<Vec<[i32; 2]>>,
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Transform {
     #[pyo3(get)]
@@ -50,7 +50,7 @@ pub struct Transform {
     pub translate: [f64; 2],
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Geometry {

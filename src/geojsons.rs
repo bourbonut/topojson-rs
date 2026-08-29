@@ -3,8 +3,8 @@ use pyo3::prelude::*;
 use serde::Serialize;
 use std::fs;
 
-#[pyclass]
-#[derive(Debug, PartialEq, Serialize)]
+#[pyclass(from_py_object)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub enum GeoJSON {
     FeatureCollection(FeatureCollection),
@@ -23,7 +23,7 @@ impl GeoJSON {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct FeatureCollection {
     #[pyo3(get)]
@@ -42,7 +42,7 @@ impl FeatureCollection {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Feature {
     #[pyo3(get)]
@@ -67,7 +67,7 @@ impl Feature {
     }
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum FeatureGeometryType {
     GeometryCollection {

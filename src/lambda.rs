@@ -44,7 +44,7 @@ pub enum GeoVarEnum {
     Or([Box<GeoVarEnum>; 2]),
 }
 
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone, Debug)]
 pub enum Transform {
     AsI64,
@@ -118,8 +118,8 @@ pub fn var() -> GeoVar {
     GeoVar::new()
 }
 
-#[pyclass]
-#[derive(Debug)]
+#[pyclass(from_py_object)]
+#[derive(Clone, Debug)]
 pub struct GeoVar {
     inner: GeoVarEnum,
 }
