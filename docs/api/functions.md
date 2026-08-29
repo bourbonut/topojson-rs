@@ -3,6 +3,7 @@ title: Functions
 ---
 
 ::: topojson.read
+::: topojson.load
 ::: topojson.var
 ::: topojson.feature
 ::: topojson.merge

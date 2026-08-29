@@ -8,6 +8,8 @@ import topojson
 topology = topojson.read(file) # (1)!
 topology.write(file) # (2)!
 
+topology = topojson.load(buffer) # (20)!
+
 land = topology.objects["land"]
 
 features = topojson.feature(topology, land) # (3)!
@@ -60,4 +62,5 @@ quantize.write(file) # (18)!
 16. See [topojson.quantize][topojson.quantize]
 17. See [TopoJSON.quantize][topojson.TopoJSON.quantize]
 18. See [TopoJSON.write][topojson.TopoJSON.write]
-18. See [TopoJSON.var][topojson.var]
+19. See [TopoJSON.var][topojson.var]
+20. See [topojson.load][topojson.load]
