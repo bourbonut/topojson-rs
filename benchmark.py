@@ -272,7 +272,7 @@ def benchmark(name, py_read_file, rs_read_file, py_func, rs_func):
 
     is_same = compare(actual, expected)
     print(
-        f"| {name.title():>21} | {r1 / r2:>6.3f} | {r1:>6.3f} ms | {r2:>6.3f} ms | {t1 / t2:>6.3f} | {t1:>6.3f} ms | {t2:>6.3f} ms | {str(is_same):>7} |"
+        f"| {name.title():>21} | {r1 / r2:>6.3f} | {r1:>6.3f} ms | {r2:>6.3f} ms | {t1 / t2:>7.3f} | {t1:>7.3f} ms | {t2:>6.3f} ms | {str(is_same):>7} |"
     )
 
 
@@ -403,16 +403,16 @@ def quantize_python():
 
 
 print(
-    "|                       |      Reading performances      |     Computation performances   |         |"
+    "|                       |      Reading performances      |     Computation performances     |         |"
 )
 print(
-    "|                       | ------------------------------ | ------------------------------ |         |"
+    "|                       | ------------------------------ | -------------------------------- |         |"
 )
 print(
-    "|      Function + Data  |  ratio |    python |      rust |  ratio |    python |      rust |  Same ? |"
+    "|      Function + Data  |  ratio |    python |      rust |  ratio  |    python  |      rust |  Same ? |"
 )
 print(
-    "| --------------------- | ------------------------------ | ------------------------------ | ------- |"
+    "| --------------------- | ------------------------------ | -------------------------------- | ------- |"
 )
 
 benchmark(
