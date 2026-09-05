@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 fn serialize_string_into_map<S>(value: &Option<String>, serializer: S) -> Result<S::Ok, S::Error>
@@ -48,6 +49,15 @@ pub struct Transform {
     pub scale: [f64; 2],
     #[pyo3(get)]
     pub translate: [f64; 2],
+}
+
+impl Transform {
+    pub(crate) fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new(py);
+        dict.set_item("scale", self.scale)?;
+        dict.set_item("translate", self.translate)?;
+        Ok(dict)
+    }
 }
 
 #[pyclass(from_py_object)]
@@ -117,6 +127,147 @@ pub enum Geometry {
         properties: Option<String>,
         bbox: Option<Vec<f64>>,
     },
+}
+
+impl Geometry {
+    pub(crate) fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict = PyDict::new(py);
+        match self {
+            Self::GeometryCollection {
+                geometries,
+                id,
+                properties,
+                bbox,
+            } => {
+                dict.set_item("type", "GeometryCollection")?;
+                dict.set_item(
+                    "geometries",
+                    geometries
+                        .iter()
+                        .map(|geometry| geometry.to_dict(py))
+                        .collect::<PyResult<Vec<Bound<'py, PyDict>>>>()?,
+                )?;
+                if let Some(id_value) = id {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties_value) = properties {
+                    dict.set_item("properties", properties_value)?;
+                }
+                if let Some(bbox_value) = bbox {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+            Self::Point {
+                coordinates,
+                id,
+                properties,
+                bbox,
+            } => {
+                dict.set_item("type", "Point")?;
+                dict.set_item("coordinates", coordinates)?;
+                if let Some(id_value) = id {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties_value) = properties {
+                    dict.set_item("properties", properties_value)?;
+                }
+                if let Some(bbox_value) = bbox {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+            Self::MultiPoint {
+                coordinates,
+                id,
+                properties,
+                bbox,
+            } => {
+                dict.set_item("type", "MultiPoint")?;
+                dict.set_item("coordinates", coordinates)?;
+                if let Some(id_value) = id {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties_value) = properties {
+                    dict.set_item("properties", properties_value)?;
+                }
+                if let Some(bbox_value) = bbox {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+            Self::LineString {
+                arcs,
+                id,
+                properties,
+                bbox,
+            } => {
+                dict.set_item("type", "LineString")?;
+                dict.set_item("arcs", arcs)?;
+                if let Some(id_value) = id {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties_value) = properties {
+                    dict.set_item("properties", properties_value)?;
+                }
+                if let Some(bbox_value) = bbox {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+            Self::MultiLineString {
+                arcs,
+                id,
+                properties,
+                bbox,
+            } => {
+                dict.set_item("type", "MultiLineString")?;
+                dict.set_item("arcs", arcs)?;
+                if let Some(id_value) = id {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties_value) = properties {
+                    dict.set_item("properties", properties_value)?;
+                }
+                if let Some(bbox_value) = bbox {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+            Self::Polygon {
+                arcs,
+                id,
+                properties,
+                bbox,
+            } => {
+                dict.set_item("type", "Polygon")?;
+                dict.set_item("arcs", arcs)?;
+                if let Some(id_value) = id {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties_value) = properties {
+                    dict.set_item("properties", properties_value)?;
+                }
+                if let Some(bbox_value) = bbox {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+            Self::MultiPolygon {
+                arcs,
+                id,
+                properties,
+                bbox,
+            } => {
+                dict.set_item("type", "MultiPolygon")?;
+                dict.set_item("arcs", arcs)?;
+                if let Some(id_value) = id {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties_value) = properties {
+                    dict.set_item("properties", properties_value)?;
+                }
+                if let Some(bbox_value) = bbox {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+        }
+        Ok(dict)
+    }
 }
 
 impl Geometry {

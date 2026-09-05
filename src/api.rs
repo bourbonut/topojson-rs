@@ -9,6 +9,7 @@ use crate::quantize::wrap_quantize;
 use crate::topojsons::{Geometry, TopoJSON, Transform};
 use pyo3::exceptions::{PyKeyError, PyOSError, PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use std::fs;
 
 #[pyfunction]
@@ -119,6 +120,31 @@ impl TopoJSON {
 
     fn quantize(&self, transform: f64) -> PyResult<TopoJSON> {
         wrap_quantize(self, &transform)
+    }
+
+    fn to_bytes(&self) -> PyResult<Vec<u8>> {
+        serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let dict: Bound<'py, PyDict> = PyDict::new(py);
+        dict.set_item("type", "Topology")?;
+        dict.set_item("bbox", self.bbox.clone())?;
+        if let Some(transform) = self
+            .transform
+            .as_ref()
+            .map(|transform| transform.to_dict(py))
+            .transpose()?
+        {
+            dict.set_item("transform", transform)?;
+        }
+        let objects: Bound<'py, PyDict> = PyDict::new(py);
+        for (key, geometry) in self.objects.iter() {
+            objects.set_item(key, geometry.to_dict(py)?)?;
+        }
+        dict.set_item("objects", objects)?;
+        dict.set_item("arcs", self.arcs.clone())?;
+        Ok(dict)
     }
 
     fn write(&self, file: &str) -> PyResult<()> {
