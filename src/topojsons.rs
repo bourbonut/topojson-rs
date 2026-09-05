@@ -129,8 +129,9 @@ pub enum Geometry {
     },
 }
 
+#[pymethods]
 impl Geometry {
-    pub(crate) fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+    pub fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
         match self {
             Self::GeometryCollection {
