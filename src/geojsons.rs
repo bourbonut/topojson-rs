@@ -8,8 +8,15 @@ use std::fs;
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "type")]
 pub enum GeoJSON {
-    FeatureCollection(FeatureCollection),
-    Feature(Feature),
+    FeatureCollection {
+        features: Vec<Feature>,
+    },
+    Feature {
+        properties: Option<String>,
+        geometry: FeatureGeometryType,
+        id: Option<String>,
+        bbox: Option<Vec<f64>>,
+    },
 }
 
 #[pymethods]
@@ -19,45 +26,37 @@ impl GeoJSON {
     }
 
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        match self {
-            Self::FeatureCollection(feature_collection) => feature_collection.to_dict(py),
-            Self::Feature(feature) => feature.to_dict(py),
-        }
-    }
-
-    fn write(&self, file: &str) -> PyResult<()> {
-        fs::write(
-            file,
-            serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
-        )
-        .map_err(PyOSError::new_err)?;
-        Ok(())
-    }
-}
-
-#[pyclass(from_py_object)]
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct FeatureCollection {
-    #[pyo3(get)]
-    pub features: Vec<Feature>,
-}
-
-#[pymethods]
-impl FeatureCollection {
-    fn to_bytes(&self) -> PyResult<Vec<u8>> {
-        serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))
-    }
-
-    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
-        dict.set_item("type", "FeatureCollection")?;
-        dict.set_item(
-            "features",
-            self.features
-                .iter()
-                .map(|feature| feature.to_dict(py))
-                .collect::<PyResult<Vec<Bound<'py, PyDict>>>>()?,
-        )?;
+        match self {
+            Self::FeatureCollection { features } => {
+                dict.set_item("type", "FeatureCollection")?;
+                dict.set_item(
+                    "features",
+                    features
+                        .iter()
+                        .map(|feature| feature.to_dict(py))
+                        .collect::<PyResult<Vec<Bound<'py, PyDict>>>>()?,
+                )?;
+            }
+            Self::Feature {
+                properties,
+                geometry,
+                id,
+                bbox,
+            } => {
+                dict.set_item("type", "Feature")?;
+                dict.set_item("geometry", geometry.to_dict(py)?)?;
+                if let Some(id_value) = id.as_ref() {
+                    dict.set_item("id", id_value)?;
+                }
+                if let Some(properties) = properties.as_ref() {
+                    dict.set_item("properties", properties)?;
+                }
+                if let Some(bbox_value) = bbox.as_ref() {
+                    dict.set_item("bbox", bbox_value)?;
+                }
+            }
+        }
         Ok(dict)
     }
 
