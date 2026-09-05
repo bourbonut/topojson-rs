@@ -1,4 +1,4 @@
-use crate::geojsons::{Feature, FeatureGeometryType, GeoJSON};
+use crate::geojsons::{FeatureGeometryType, GeoJSON};
 use crate::reverse::reverse;
 use crate::topojsons::{Geometry, TopoJSON};
 use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
@@ -6,21 +6,13 @@ use crate::transform::{IdentityTransformer, ScaleTransformer, Transformer};
 pub fn wrap_feature(topology: &TopoJSON, o: &Geometry) -> GeoJSON {
     match &o {
         Geometry::GeometryCollection { geometries, .. } => {
-            let features: Vec<Feature> = geometries
+            let features: Vec<GeoJSON> = geometries
                 .iter()
                 .map(|o| feature_item(topology, o))
                 .collect();
             GeoJSON::FeatureCollection { features }
         }
-        _ => {
-            let feature = feature_item(topology, o);
-            GeoJSON::Feature {
-                properties: feature.properties,
-                geometry: feature.geometry,
-                id: feature.id,
-                bbox: feature.bbox,
-            }
-        }
+        _ => feature_item(topology, o),
     }
 }
 
@@ -31,12 +23,12 @@ pub fn object_func(topology: &TopoJSON, o: &Geometry) -> FeatureGeometryType {
     }
 }
 
-fn feature_item(topology: &TopoJSON, o: &Geometry) -> Feature {
+fn feature_item(topology: &TopoJSON, o: &Geometry) -> GeoJSON {
     let geometry = object_func(topology, o);
     let id = o.id();
     let bbox = o.bbox();
     let properties = o.properties();
-    Feature {
+    GeoJSON::Feature {
         id,
         bbox,
         properties,
@@ -423,7 +415,7 @@ mod tests {
         assert_eq!(
             feature,
             GeoJSON::FeatureCollection {
-                features: vec![Feature {
+                features: vec![GeoJSON::Feature {
                     properties: None,
                     geometry: FeatureGeometryType::MultiPolygon {
                         coordinates: vec![vec![vec![
@@ -458,7 +450,7 @@ mod tests {
         assert_eq!(
             feature,
             GeoJSON::FeatureCollection {
-                features: vec![Feature {
+                features: vec![GeoJSON::Feature {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
                         coordinates: [0., 0.]
@@ -487,7 +479,7 @@ mod tests {
         assert_eq!(
             feature,
             GeoJSON::FeatureCollection {
-                features: vec![Feature {
+                features: vec![GeoJSON::Feature {
                     properties: None,
                     geometry: FeatureGeometryType::Point {
                         coordinates: [0., 0.]
@@ -516,7 +508,7 @@ mod tests {
         assert_eq!(
             feature,
             GeoJSON::FeatureCollection {
-                features: vec![Feature {
+                features: vec![GeoJSON::Feature {
                     properties: Some("{'name': 'feature'}".to_string()),
                     geometry: FeatureGeometryType::Point {
                         coordinates: [0., 0.]

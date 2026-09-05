@@ -9,7 +9,7 @@ use std::fs;
 #[serde(tag = "type")]
 pub enum GeoJSON {
     FeatureCollection {
-        features: Vec<Feature>,
+        features: Vec<GeoJSON>,
     },
     Feature {
         properties: Option<String>,
@@ -56,51 +56,6 @@ impl GeoJSON {
                     dict.set_item("bbox", bbox_value)?;
                 }
             }
-        }
-        Ok(dict)
-    }
-
-    fn write(&self, file: &str) -> PyResult<()> {
-        fs::write(
-            file,
-            serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))?,
-        )
-        .map_err(PyOSError::new_err)?;
-        Ok(())
-    }
-}
-
-#[pyclass(from_py_object)]
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Feature {
-    #[pyo3(get)]
-    pub properties: Option<String>,
-    #[pyo3(get)]
-    pub geometry: FeatureGeometryType,
-    #[pyo3(get)]
-    pub id: Option<String>,
-    #[pyo3(get)]
-    pub bbox: Option<Vec<f64>>,
-}
-
-#[pymethods]
-impl Feature {
-    fn to_bytes(&self) -> PyResult<Vec<u8>> {
-        serde_json::to_vec(self).map_err(|e| PyRuntimeError::new_err(e.to_string()))
-    }
-
-    fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let dict: Bound<'py, PyDict> = PyDict::new(py);
-        dict.set_item("type", "Feature")?;
-        dict.set_item("geometry", self.geometry.to_dict(py)?)?;
-        if let Some(id) = self.id.as_ref() {
-            dict.set_item("id", id)?;
-        }
-        if let Some(properties) = self.properties.as_ref() {
-            dict.set_item("properties", properties)?;
-        }
-        if let Some(bbox) = self.bbox.as_ref() {
-            dict.set_item("bbox", bbox)?;
         }
         Ok(dict)
     }
