@@ -193,6 +193,36 @@ class TopoJSON:
             If topology is already quantized or transform is smaller than 2.
         """
 
+    def to_bytes(self) -> bytes:
+        """
+        Returns expression as bytes.
+
+        Returns
+        -------
+        bytes
+            Expression as bytes
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        """
+
+    def to_dict(self) -> dict:
+        """
+        Serializes the TopoJSON object as a dictionary.
+
+        Returns
+        -------
+        dict
+            TopoJSON as dict
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        """
+
     def write(self, file: str):
         """
         Writes expression to json.
@@ -317,6 +347,36 @@ class GeoJSON_FeatureCollection:
 
     features: list[GeoJSON_Feature]
 
+    def to_bytes(self) -> bytes:
+        """
+        Returns expression as bytes.
+
+        Returns
+        -------
+        bytes
+            Expression as bytes
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        """
+
+    def to_dict(self) -> dict:
+        """
+        Serializes the GeoJSON object as a dictionary.
+
+        Returns
+        -------
+        dict
+            GeoJSON as dict
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        """
+
     def write(self, file: str):
         """
         Writes expression to json.
@@ -343,6 +403,36 @@ class GeoJSON_Feature:
     geometry: FeatureGeometryType
     id: Optional[str]
     bbox: Optional[list[float]]
+
+    def to_bytes(self) -> bytes:
+        """
+        Returns expression as bytes.
+
+        Returns
+        -------
+        bytes
+            Expression as bytes
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        """
+
+    def to_dict(self) -> dict:
+        """
+        Serializes the GeoJSON object as a dictionary.
+
+        Returns
+        -------
+        dict
+            GeoJSON as dict
+
+        Raises
+        ------
+        RuntimeError
+            When serialization fails
+        """
 
     def write(self, file: str):
         """
