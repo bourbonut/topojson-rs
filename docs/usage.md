@@ -7,6 +7,8 @@ import topojson
 
 topology = topojson.read(file) # (1)!
 topology.write(file) # (2)!
+topojson_dict = topology.to_dict() # (21)!
+topojson_bytes = topology.to_bytes() # (22)!
 
 topology = topojson.load(buffer) # (20)!
 
@@ -64,3 +66,5 @@ quantize.write(file) # (18)!
 18. See [TopoJSON.write][topojson.TopoJSON.write]
 19. See [TopoJSON.var][topojson.var]
 20. See [topojson.load][topojson.load]
+21. See [TopoJSON.to_dict][topojson.TopoJSON.to_dict]
+22. See [TopoJSON.to_bytes][topojson.TopoJSON.to_bytes]
