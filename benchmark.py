@@ -216,15 +216,13 @@ def compare(actual, expected):
         assert result
         return result
     # FeatureCollection from Feature
-    elif check_struct(actual[0], ["features"]):
-        actual = actual[0]
+    elif check_struct(actual, ["features"]):
         assert expected["type"] == "FeatureCollection"
         result = compare(actual.features, expected["features"])
         assert result
         return result
     # FeatureItem from Feature
-    elif check_struct(actual[0], ["properties", "geometry", "id", "bbox"]):
-        actual = actual[0]
+    elif check_struct(actual, ["properties", "geometry", "id", "bbox"]):
         assert expected["type"] in ["Feature"]
         geometry_check = compare(actual.geometry, expected["geometry"])
         properties_check = (
